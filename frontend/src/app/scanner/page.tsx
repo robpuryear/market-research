@@ -34,9 +34,9 @@ export default function ScannerPage() {
       console.log("✅ Scan complete! Results:", results);
       console.log(`Found ${results.length} candidates`);
       setCandidates(results);
-    } catch (err: any) {
+    } catch (err) {
       console.error("❌ Scan failed:", err);
-      setError(err.message || "Failed to scan market");
+      setError(err instanceof Error ? err.message : "Failed to scan market");
     } finally {
       setIsScanning(false);
     }
@@ -55,11 +55,12 @@ export default function ScannerPage() {
           return next;
         });
       }, 3000); // Show "Added!" for 3 seconds
-    } catch (err: any) {
-      if (err.message.includes("409")) {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("409")) {
         alert(`${ticker} is already in your watchlist`);
       } else {
-        alert(`Failed to add ${ticker}: ${err.message}`);
+        alert(`Failed to add ${ticker}: ${message}`);
       }
     } finally {
       setAddingTicker(null);

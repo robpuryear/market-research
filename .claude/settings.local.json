@@ -33,7 +33,16 @@
       "Bash(git init:*)",
       "Bash(gh auth status:*)",
       "Bash(gh auth login:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git rm:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git push:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(gh repo sync:*)",
+      "Bash(gh auth:*)",
+      "Bash(vercel login:*)",
+      "Bash(vercel:*)"
     ]
   }
 }

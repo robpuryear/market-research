@@ -37,7 +37,7 @@ export function ReportCard({ report }: ReportCardProps) {
       await deleteReport(report.id);
       // Refresh the reports list
       mutate("reports");
-    } catch (error) {
+    } catch {
       alert("Failed to delete report");
       setIsDeleting(false);
     }

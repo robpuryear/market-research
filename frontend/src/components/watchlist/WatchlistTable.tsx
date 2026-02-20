@@ -34,8 +34,9 @@ export function WatchlistTable({ compact = false }: { compact?: boolean }) {
     try {
       await removeFromWatchlist(ticker);
       mutate("watchlist"); // Refresh the watchlist
-    } catch (err: any) {
-      alert(`Failed to remove ${ticker}: ${err.message}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert(`Failed to remove ${ticker}: ${message}`);
     } finally {
       setRemovingTicker(null);
     }

@@ -25,13 +25,14 @@ export function AddTickerForm() {
       mutate("watchlist");
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      if (err.message.includes("409")) {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("409")) {
         setError("Ticker already in watchlist");
-      } else if (err.message.includes("404")) {
+      } else if (message.includes("404")) {
         setError("Ticker not found - please enter a valid stock symbol");
       } else {
-        setError(err.message || "Failed to add ticker");
+        setError(message || "Failed to add ticker");
       }
     } finally {
       setIsLoading(false);

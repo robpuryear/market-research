@@ -15,7 +15,7 @@ function TwitsMeter({ ticker }: { ticker: string }) {
 
   if (!data) return null;
 
-  const { bullish_count, bearish_count, total_messages, sentiment_ratio, sentiment_label } = data;
+  const { bullish_count, bearish_count, total_messages, sentiment_label } = data;
   const labeled = bullish_count + bearish_count;
   const bullPct = labeled > 0 ? Math.round((bullish_count / labeled) * 100) : 50;
   const bearPct = 100 - bullPct;

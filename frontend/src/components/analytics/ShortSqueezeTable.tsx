@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { useSqueeze } from "@/hooks/useAnalytics";
-import type { SqueezeScore } from "@/lib/types";
 import { InfoIcon } from "@/components/ui/Tooltip";
 import { TOOLTIPS } from "@/lib/tooltips";
 
