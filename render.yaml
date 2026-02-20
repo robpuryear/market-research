@@ -3,12 +3,12 @@ services:
     name: market-research-backend
     env: python
     region: oregon
+    plan: free
+    pythonVersion: "3.11"
     buildCommand: "cd backend && pip install -r requirements.txt"
     startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
     healthCheckPath: /api/health
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11
       - key: ENVIRONMENT
         value: production
       - key: ALPHA_VANTAGE_API_KEY
