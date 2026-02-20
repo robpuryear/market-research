@@ -4,9 +4,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import yfinance as yf
 
-from backend.engines.watchlist import price_data, fundamentals, options_flow, earnings_calendar
-from backend.models.analytics import EarningsCalendarEntry
-from backend.core import watchlist_manager, cache
+from engines.watchlist import price_data, fundamentals, options_flow, earnings_calendar
+from models.analytics import EarningsCalendarEntry
+from core import watchlist_manager, cache
 
 router = APIRouter(prefix="/api/watchlist", tags=["watchlist"])
 

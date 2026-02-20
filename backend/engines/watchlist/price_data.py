@@ -4,9 +4,9 @@ from datetime import datetime, timezone
 from typing import List
 import logging
 
-from backend.models.watchlist import StockData
-from backend.core import cache, rate_limiter
-from backend.config import settings
+from models.watchlist import StockData
+from core import cache, rate_limiter
+from config import settings
 
 logger = logging.getLogger(__name__)
 

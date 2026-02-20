@@ -9,13 +9,13 @@ import logging
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from backend.models.reports import ReportMeta
-from backend.engines.market_data import macro, sectors
-from backend.engines.watchlist import price_data, fundamentals, options_flow
-from backend.engines.analytics import ml_signals, correlation, short_squeeze
-from backend.engines.sentiment import flow_toxicity
-from backend.report_engine.renderers import charts, tables, scanner_report
-from backend.engines.market_data import technicals
+from models.reports import ReportMeta
+from engines.market_data import macro, sectors
+from engines.watchlist import price_data, fundamentals, options_flow
+from engines.analytics import ml_signals, correlation, short_squeeze
+from engines.sentiment import flow_toxicity
+from report_engine.renderers import charts, tables, scanner_report
+from engines.market_data import technicals
 
 logger = logging.getLogger(__name__)
 

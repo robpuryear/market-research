@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from typing import List
 import logging
 
-from backend.models.market import SectorData
-from backend.core import cache, rate_limiter
+from models.market import SectorData
+from core import cache, rate_limiter
 
 logger = logging.getLogger(__name__)
 

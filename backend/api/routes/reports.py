@@ -8,8 +8,8 @@ import json
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, FileResponse
 
-from backend.report_engine import generator
-from backend.models.reports import ReportJobStatus
+from report_engine import generator
+from models.reports import ReportJobStatus
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 

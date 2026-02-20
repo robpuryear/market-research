@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 import numpy as np
 import yfinance as yf
 
-from backend.models.market import IVAnalytics
-from backend.core import cache, rate_limiter
+from models.market import IVAnalytics
+from core import cache, rate_limiter
 
 logger = logging.getLogger(__name__)
 

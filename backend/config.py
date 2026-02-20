@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     @property
     def tickers_list(self) -> List[str]:
         """Get current watchlist tickers from persistent storage."""
-        from backend.core import watchlist_manager
+        from core import watchlist_manager
         return watchlist_manager.get_tickers()
 
     model_config = {"env_file": ".env", "extra": "ignore"}

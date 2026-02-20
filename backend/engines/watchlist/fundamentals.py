@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 import logging
 import math
 
-from backend.models.watchlist import StockDetailData, EarningsEntry
-from backend.core import cache, rate_limiter
+from models.watchlist import StockDetailData, EarningsEntry
+from core import cache, rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +108,7 @@ async def deep_dive(ticker: str) -> StockDetailData:
         earnings_history = []
         earnings_surprise_pct = None
         try:
-            from backend.engines.market_data.alpha_vantage import fetch_earnings as av_fetch
+            from engines.market_data.alpha_vantage import fetch_earnings as av_fetch
             av_entries = await av_fetch(ticker)
             if av_entries:
                 earnings_history = av_entries

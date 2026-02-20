@@ -5,11 +5,11 @@ from typing import List, Optional
 from datetime import datetime, timezone
 import yfinance as yf
 
-from backend.core import stock_universe, cache, rate_limiter
-from backend.models.analytics import ScanCandidate
-from backend.engines.analytics import ml_signals
-from backend.engines.watchlist import options_flow
-from backend.engines.market_data import iv_analytics
+from core import stock_universe, cache, rate_limiter
+from models.analytics import ScanCandidate
+from engines.analytics import ml_signals
+from engines.watchlist import options_flow
+from engines.market_data import iv_analytics
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ async def scan_ticker(ticker: str) -> Optional[ScanCandidate]:
         raw_signals = ml_data.get("signals", [])
 
         # Parse signals into MLSignal objects
-        from backend.models.analytics import MLSignal
+        from models.analytics import MLSignal
         signals = []
         for sig_str in raw_signals:
             # Simple classification

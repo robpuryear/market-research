@@ -4,8 +4,8 @@ from typing import List, Optional
 
 import httpx
 
-from backend.models.sentiment import NewsSentimentData, NewsArticle
-from backend.core import cache, rate_limiter
+from models.sentiment import NewsSentimentData, NewsArticle
+from core import cache, rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ LABEL_SCORES = {
 
 async def fetch_news_sentiment(ticker: str) -> Optional[NewsSentimentData]:
     """Returns news sentiment from Alpha Vantage, or None if no key configured."""
-    from backend.config import settings
+    from config import settings
 
     if not settings.alpha_vantage_api_key:
         return None

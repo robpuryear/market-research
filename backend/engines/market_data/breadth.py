@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
-from backend.models.market import MarketBreadth
-from backend.core import cache, rate_limiter
+from models.market import MarketBreadth
+from core import cache, rate_limiter
 
 logger = logging.getLogger(__name__)
 

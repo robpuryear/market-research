@@ -7,7 +7,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
-from backend.models.reports import SchedulerJobInfo
+from models.reports import SchedulerJobInfo
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +16,8 @@ scheduler = AsyncIOScheduler(timezone="America/New_York")
 
 async def _refresh_market_snapshot():
     try:
-        from backend.engines.market_data import macro
-        from backend.core.cache import invalidate
+        from engines.market_data import macro
+        from core.cache import invalidate
         invalidate("macro_snapshot")
         await macro.fetch_snapshot()
         logger.debug("Market snapshot refreshed")
@@ -27,8 +27,8 @@ async def _refresh_market_snapshot():
 
 async def _refresh_watchlist():
     try:
-        from backend.engines.watchlist import price_data
-        from backend.core.cache import invalidate
+        from engines.watchlist import price_data
+        from core.cache import invalidate
         invalidate("watchlist_bulk")
         await price_data.bulk_fetch()
         logger.debug("Watchlist refreshed")
@@ -38,8 +38,8 @@ async def _refresh_watchlist():
 
 async def _refresh_sectors():
     try:
-        from backend.engines.market_data import sectors
-        from backend.core.cache import invalidate
+        from engines.market_data import sectors
+        from core.cache import invalidate
         invalidate("sector_rotation")
         await sectors.fetch_rotation()
         logger.debug("Sectors refreshed")
@@ -49,8 +49,8 @@ async def _refresh_sectors():
 
 async def _refresh_reddit():
     try:
-        from backend.engines.sentiment import reddit
-        from backend.core.cache import invalidate
+        from engines.sentiment import reddit
+        from core.cache import invalidate
         invalidate("reddit_sentiment")
         await reddit.fetch_trending()
         logger.debug("Reddit sentiment refreshed")
@@ -60,8 +60,8 @@ async def _refresh_reddit():
 
 async def _refresh_breadth():
     try:
-        from backend.engines.market_data import breadth
-        from backend.core.cache import invalidate
+        from engines.market_data import breadth
+        from core.cache import invalidate
         invalidate("market_breadth")
         await breadth.fetch_breadth()
         logger.debug("Market breadth refreshed")
@@ -71,7 +71,7 @@ async def _refresh_breadth():
 
 async def _generate_daily_report():
     try:
-        from backend.report_engine import generator
+        from report_engine import generator
         await generator.generate_report_a(standalone=True)
         logger.info("Scheduled daily report generated")
     except Exception as e:
@@ -80,7 +80,7 @@ async def _generate_daily_report():
 
 async def _generate_analytics_report():
     try:
-        from backend.report_engine import generator
+        from report_engine import generator
         await generator.generate_report_b(standalone=True)
         logger.info("Scheduled analytics report generated")
     except Exception as e:
@@ -89,7 +89,7 @@ async def _generate_analytics_report():
 
 async def _generate_scanner_report():
     try:
-        from backend.report_engine import generator
+        from report_engine import generator
         await generator.generate_scanner_report(standalone=True)
         logger.info("Scheduled scanner report generated")
     except Exception as e:
@@ -98,8 +98,8 @@ async def _generate_scanner_report():
 
 async def _refresh_analytics():
     try:
-        from backend.engines.analytics import short_squeeze, correlation
-        from backend.core.cache import invalidate
+        from engines.analytics import short_squeeze, correlation
+        from core.cache import invalidate
         invalidate("squeeze_scores")
         invalidate("correlation_matrix")
         await short_squeeze.score_all()

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
-from backend.engines.analytics import ml_signals, correlation, short_squeeze, market_scanner
-from backend.models.analytics import MLSignalsData, MLSignal, SqueezeScore, CorrelationMatrix, ScanCandidate
+from engines.analytics import ml_signals, correlation, short_squeeze, market_scanner
+from models.analytics import MLSignalsData, MLSignal, SqueezeScore, CorrelationMatrix, ScanCandidate
 from datetime import datetime, timezone
 from typing import List
 

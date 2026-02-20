@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from typing import Optional, List
 import logging
 
-from backend.models.market import TechnicalData
-from backend.core import cache, rate_limiter
+from models.market import TechnicalData
+from core import cache, rate_limiter
 
 logger = logging.getLogger(__name__)
 

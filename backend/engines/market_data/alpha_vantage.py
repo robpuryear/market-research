@@ -3,8 +3,8 @@ from typing import List, Optional
 
 import httpx
 
-from backend.models.watchlist import EarningsEntry
-from backend.core import cache, rate_limiter
+from models.watchlist import EarningsEntry
+from core import cache, rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ AV_BASE = "https://www.alphavantage.co/query"
 
 async def fetch_earnings(ticker: str) -> Optional[List[EarningsEntry]]:
     """Returns last 8 quarters of earnings, or None if no key / any error."""
-    from backend.config import settings
+    from config import settings
 
     if not settings.alpha_vantage_api_key:
         return None

@@ -1,7 +1,7 @@
 """Dark pool data placeholder — requires Polygon.io premium access."""
 from datetime import datetime, timezone
-from backend.models.sentiment import DarkPoolData
-from backend.config import settings
+from models.sentiment import DarkPoolData
+from config import settings
 import logging
 
 logger = logging.getLogger(__name__)

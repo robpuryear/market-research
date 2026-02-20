@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import List, Dict
 import logging
 
-from backend.core import cache, rate_limiter
+from core import cache, rate_limiter
 
 logger = logging.getLogger(__name__)
 

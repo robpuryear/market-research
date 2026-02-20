@@ -2,8 +2,8 @@
 import logging
 from datetime import datetime
 from typing import List
-from backend.models.analytics import ScanCandidate
-from backend.engines.analytics import market_scanner
+from models.analytics import ScanCandidate
+from engines.analytics import market_scanner
 
 logger = logging.getLogger(__name__)
 

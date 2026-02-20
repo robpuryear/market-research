@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from backend.engines.sentiment import reddit, flow_toxicity, dark_pool, stocktwits, av_news
+from engines.sentiment import reddit, flow_toxicity, dark_pool, stocktwits, av_news
 
 router = APIRouter(prefix="/api/sentiment", tags=["sentiment"])
 

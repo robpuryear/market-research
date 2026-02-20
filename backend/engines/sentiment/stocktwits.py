@@ -4,8 +4,8 @@ from typing import List
 
 import httpx
 
-from backend.models.sentiment import StockTwitsSentiment
-from backend.core import cache, rate_limiter
+from models.sentiment import StockTwitsSentiment
+from core import cache, rate_limiter
 
 logger = logging.getLogger(__name__)
 

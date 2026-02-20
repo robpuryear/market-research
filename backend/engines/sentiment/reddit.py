@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from typing import List, Dict
 import logging
 
-from backend.models.sentiment import RedditSentimentData, RedditPost, TickerMention
-from backend.core import cache
+from models.sentiment import RedditSentimentData, RedditPost, TickerMention
+from core import cache
 
 logger = logging.getLogger(__name__)
 

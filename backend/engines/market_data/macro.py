@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from typing import Optional
 import logging
 
-from backend.models.market import MarketSnapshot, IndexData
-from backend.core import cache, rate_limiter
+from models.market import MarketSnapshot, IndexData
+from core import cache, rate_limiter
 
 logger = logging.getLogger(__name__)
 

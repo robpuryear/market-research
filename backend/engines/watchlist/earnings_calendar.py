@@ -4,8 +4,8 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Dict
 import logging
 
-from backend.core import cache, rate_limiter
-from backend.config import settings
+from core import cache, rate_limiter
+from config import settings
 
 logger = logging.getLogger(__name__)
 
