@@ -42,7 +42,13 @@
       "Bash(gh repo sync:*)",
       "Bash(gh auth:*)",
       "Bash(vercel login:*)",
-      "Bash(vercel:*)"
+      "Bash(vercel:*)",
+      "Bash(for file in daily/page.tsx analytics/page.tsx research/*/page.tsx)",
+      "Bash(do if [ -f \"$file\" ])",
+      "Bash(then if ! grep -q \"export const dynamic\" \"$file\")",
+      "Bash(then sed -i '' '1 aexport const dynamic = '\"''\"'force-dynamic'\"''\"';' \"$file\")",
+      "Bash(fi)",
+      "Bash(done)"
     ]
   }
 }

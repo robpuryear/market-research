@@ -3,6 +3,9 @@ import { useSearchParams } from "next/navigation";
 import { getReportViewUrl } from "@/lib/api";
 import Link from "next/link";
 
+// Disable static generation for this page
+export const dynamic = 'force-dynamic';
+
 export default function ScannerReportPage() {
   const searchParams = useSearchParams();
   const reportId = searchParams.get("id");
