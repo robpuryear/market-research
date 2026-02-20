@@ -7,8 +7,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.api.routes import market, watchlist, sentiment, reports, scheduler as scheduler_routes, analytics
-from backend.core import scheduler as sched
+from api.routes import market, watchlist, sentiment, reports, scheduler as scheduler_routes, analytics
+from core import scheduler as sched
 
 logging.basicConfig(
     level=logging.INFO,
@@ -66,7 +66,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://market-research-one-delta.vercel.app",
+        "https://*.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
