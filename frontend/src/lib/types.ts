@@ -238,7 +238,7 @@ export interface FlowToxicityData {
 
 export interface ReportMeta {
   id: string;
-  type: "daily" | "analytics" | "research";
+  type: "daily" | "analytics" | "research" | "scanner";
   ticker: string | null;
   generated_at: string;
   path: string;
