@@ -26,6 +26,7 @@ async def fetch_news_sentiment(ticker: str) -> Optional[NewsSentimentData]:
     from config import settings
 
     if not settings.alpha_vantage_api_key:
+        logger.warning(f"Alpha Vantage API key not configured, skipping news sentiment for {ticker}")
         return None
 
     cache_key = f"av_news_{ticker}"
@@ -43,10 +44,17 @@ async def fetch_news_sentiment(ticker: str) -> Optional[NewsSentimentData]:
             "limit": "50",
             "apikey": settings.alpha_vantage_api_key,
         }
+        logger.info(f"Fetching Alpha Vantage news for {ticker}")
         async with httpx.AsyncClient(timeout=20.0) as client:
             resp = await client.get(AV_BASE, params=params)
+            logger.info(f"Alpha Vantage response status: {resp.status_code}")
             resp.raise_for_status()
             data = resp.json()
+
+            # Check for API error messages
+            if "Error Message" in data or "Note" in data:
+                logger.error(f"Alpha Vantage API error for {ticker}: {data}")
+                return None
 
         # AV returns {"Information": "..."} when rate-limited or key is invalid
         if "Information" in data or "Note" in data:
@@ -129,7 +137,7 @@ async def fetch_news_sentiment(ticker: str) -> Optional[NewsSentimentData]:
         return result
 
     except Exception as e:
-        logger.warning(f"Alpha Vantage news sentiment failed for {ticker}: {e}")
+        logger.error(f"Alpha Vantage news sentiment failed for {ticker}: {type(e).__name__}: {e}", exc_info=True)
         stale = cache.get_stale(cache_key)
         if stale:
             return NewsSentimentData(**stale)
