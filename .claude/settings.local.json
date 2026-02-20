@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(pip3:*)",
+      "Bash(brew list:*)",
+      "Bash(brew install:*)",
+      "Bash(python -c:*)",
+      "Bash(timeout 8 uvicorn:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(printf:*)",
+      "Bash(npx --yes create-next-app@15:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(curl:*)",
+      "Bash(chmod:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pip show:*)",
+      "WebSearch",
+      "Bash(lsof:*)",
+      "Bash(kill:*)",
+      "Bash(xargs:*)",
+      "Bash(cat:*)",
+      "Bash(\"/Users/robpuryear/Documents/Claude_Code/market research/TESTING.md\" << 'EOF'\n# Testing Checklist\n\n## Backend API Tests\n\n### Health & Status\n- [ ] `GET /health` returns 200\n- [ ] `GET /api/scheduler/status` shows all jobs\n\n### Market Data\n- [ ] `GET /api/market/snapshot` returns VIX, indices, yields\n- [ ] `GET /api/market/sectors` returns 11 sector ETFs\n- [ ] `GET /api/market/breadth` returns breadth metrics\n- [ ] `GET /api/market/technicals/AAPL` returns OHLCV + indicators\n- [ ] `GET /api/market/iv/AAPL` returns IV analytics\n- [ ] `GET /api/market/options/AAPL` returns max pain, gamma, P/C ratio\n\n### Watchlist\n- [ ] `GET /api/watchlist/` returns all tickers with prices\n- [ ] `GET /api/watchlist/AAPL` returns fundamentals + insider data\n- [ ] `GET /api/watchlist/earnings-calendar` returns upcoming earnings\n\n### Analytics\n- [ ] `GET /api/analytics/squeeze` returns ranked squeeze scores\n- [ ] `GET /api/analytics/correlation` returns correlation matrix\n- [ ] `GET /api/analytics/signals/AAPL` returns ML signals \\(may be empty\\)\n\n### Sentiment\n- [ ] `GET /api/sentiment/reddit` returns top posts + ticker mentions\n- [ ] `GET /api/sentiment/stocktwits/AAPL` returns social sentiment\n- [ ] `GET /api/sentiment/news/AAPL` returns news articles with sentiment\n- [ ] `GET /api/sentiment/flow-toxicity/AAPL` returns pin score + toxicity\n\n### Reports\n- [ ] `POST /api/reports/generate/daily` creates job\n- [ ] `POST /api/reports/generate/analytics` creates job\n- [ ] `POST /api/reports/generate/research?ticker=AAPL` creates job\n- [ ] `GET /api/reports/status/{job_id}` returns job status\n- [ ] `GET /api/reports/` lists all reports\n- [ ] `GET /api/reports/view/{id}` serves HTML\n- [ ] `GET /api/reports/download/{id}` downloads file\n- [ ] `DELETE /api/reports/{id}` deletes report\n\n## Frontend Tests\n\n### Pages Load\n- [ ] `/` — Dashboard\n- [ ] `/market` — Market page\n- [ ] `/watchlist` — Watchlist page\n- [ ] `/watchlist/AAPL` — Stock detail page\n- [ ] `/analytics` — Analytics page\n- [ ] `/sentiment` — Sentiment page\n- [ ] `/reports` — Reports page\n\n### Dashboard Components\n- [ ] Macro panel shows VIX, market regime\n- [ ] Index levels show SPY/QQQ/IWM with % changes\n- [ ] Sector heatmap displays color-coded sectors\n- [ ] Market breadth shows A/D ratio and scores\n- [ ] Watchlist table displays tickers with prices\n- [ ] Earnings calendar shows upcoming earnings\n\n### Market Page\n- [ ] All dashboard components render\n- [ ] Charts are interactive \\(if using Plotly\\)\n- [ ] Data refreshes every 5 minutes\n\n### Watchlist Page\n- [ ] Earnings calendar shows \"This Week / Next Week / Later\"\n- [ ] Table is sortable by columns\n- [ ] Clicking ticker navigates to detail page\n\n### Stock Detail Page\n- [ ] IV Analytics panel shows IV rank, expected moves\n- [ ] Options panel shows max pain, gamma, P/C ratio\n- [ ] Stock detail panel shows fundamentals\n- [ ] Earnings history displays\n- [ ] Insider transactions display\n- [ ] \"Generate Report\" button works\n\n### Analytics Page\n- [ ] Short squeeze table displays with color coding\n- [ ] Correlation heatmap shows all tickers\n- [ ] ML signals feed has ticker selector\n- [ ] Signal cards show direction badges\n\n### Sentiment Page\n- [ ] Reddit feed shows top posts\n- [ ] Ticker mentions show counts\n- [ ] StockTwits panel \\(if implemented\\)\n- [ ] News sentiment panel \\(if implemented\\)\n\n### Reports Page\n- [ ] Generate buttons create new reports\n- [ ] Report cards display with metadata\n- [ ] \"View\" button opens report viewer\n- [ ] \"Download\" button downloads HTML\n- [ ] Delete button \\(🗑️\\) removes report with confirmation\n- [ ] Reports auto-refresh after generation\n\n## Integration Tests\n\n### Data Flow\n- [ ] Backend cache persists between requests\n- [ ] Frontend SWR cache prevents duplicate requests\n- [ ] Auto-refresh intervals work correctly\n- [ ] Loading states display during fetches\n- [ ] Error states display on API failures\n\n### Scheduler\n- [ ] Jobs run at scheduled times\n- [ ] Reports auto-generate at 6:30 AM, 4:30 PM, 5:00 PM\n- [ ] Analytics scores refresh at 4:30 PM\n- [ ] Market data refreshes every 5-10 minutes\n\n### Report Generation\n- [ ] Daily reports include VIX, sectors, watchlist\n- [ ] Analytics reports include signals, correlation, squeeze\n- [ ] Research reports include charts, fundamentals, insider data\n- [ ] Reports are viewable in iframe\n- [ ] Reports are downloadable as standalone HTML\n\n## Performance Tests\n\n### Response Times\n- [ ] Health check: < 50ms\n- [ ] Market snapshot: < 2s\n- [ ] Watchlist bulk: < 3s\n- [ ] Stock detail: < 5s\n- [ ] Report generation: < 10s\n\n### Cache Hit Rates\n- [ ] Repeated requests return from cache\n- [ ] Cache invalidation works correctly\n- [ ] TTLs are respected\n\n## Security Tests\n\n### Environment\n- [ ] `.env` file is not committed to git\n- [ ] API keys are loaded from environment\n- [ ] No secrets in code\n\n### CORS\n- [ ] Frontend can call backend \\(localhost:3000 → localhost:8000\\)\n- [ ] Unauthorized origins are blocked\n\n### Input Validation\n- [ ] Invalid tickers return 404/400\n- [ ] Malformed requests return error messages\n- [ ] SQL injection not possible \\(using yfinance, not DB\\)\n\n## Browser Compatibility\n\n- [ ] Chrome/Edge — All features work\n- [ ] Firefox — All features work\n- [ ] Safari — All features work\n- [ ] Mobile responsive \\(optional\\)\n\n## Error Handling\n\n### API Errors\n- [ ] 404 returns meaningful message\n- [ ] 500 shows error details\n- [ ] Network errors display user-friendly message\n\n### Data Errors\n- [ ] Missing data shows \"—\" or placeholder\n- [ ] Invalid ticker returns error\n- [ ] Rate limit exceeded handled gracefully\n\n## Documentation\n\n- [ ] README.md is complete\n- [ ] API docs at /docs are accurate\n- [ ] .env.example has all required keys\n- [ ] Code comments are clear\n\n## Deployment Readiness\n\n- [ ] `./start.sh` starts both servers\n- [ ] All dependencies are in requirements.txt / package.json\n- [ ] No hard-coded paths \\(use relative paths\\)\n- [ ] Environment variables are configurable\n- [ ] Production build works \\(`npm run build`\\)\n\n---\n\n## Test Results\n\nDate: _______\nTester: _______\n\n**Pass Rate**: _____ / _____ tests passed\n\n**Critical Issues**:\n- \n\n**Minor Issues**:\n- \n\n**Notes**:\n- \nEOF)",
+      "Bash(bash:*)",
+      "Bash(killall:*)",
+      "Bash(python:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(git init:*)",
+      "Bash(gh auth status:*)",
+      "Bash(gh auth login:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

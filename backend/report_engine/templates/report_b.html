@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- ── ML Signals ── -->
+<div class="section">
+    <div class="section-title">ML Signals &amp; Technical Alerts</div>
+    {% if not all_signals %}
+    <p style="color:var(--text-muted)">No significant signals detected.</p>
+    {% else %}
+    {% for item in all_signals %}
+    {% if item.signals %}
+    <div style="margin-bottom:16px">
+        <div style="color:var(--blue);font-weight:bold;margin-bottom:6px">{{ item.ticker }}</div>
+        <ul class="signal-list">
+            {% for sig in item.signals %}
+            <li>{{ sig }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+</div>
+
+<!-- ── Correlation Matrix ── -->
+<div class="section">
+    <div class="section-title">Correlation Matrix (90D Returns)</div>
+    <div class="chart-container">{{ correlation_html | safe }}</div>
+</div>
+
+<!-- ── Options Flow ── -->
+<div class="section">
+    <div class="section-title">Unusual Options Flow</div>
+    {% for ticker_flow in all_options_flow %}
+    {% if ticker_flow.flows %}
+    <div style="margin-bottom:20px">
+        <div style="color:var(--orange);font-weight:bold;margin-bottom:8px">{{ ticker_flow.ticker }}</div>
+        {{ ticker_flow.table_html | safe }}
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+
+<!-- ── Short Squeeze Leaderboard ── -->
+<div class="section">
+    <div class="section-title">Short Squeeze Leaderboard</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Ticker</th><th>Squeeze Score</th><th>Short Interest</th>
+                <th>Days to Cover</th><th>Vol Ratio</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in squeeze_scores %}
+            <tr>
+                <td style="color:var(--text-primary);font-weight:bold">{{ s.ticker }}</td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <div style="background:var(--bg-primary);border-radius:4px;width:80px;height:8px">
+                            <div style="background:{% if s.squeeze_score > 60 %}var(--red){% elif s.squeeze_score > 30 %}var(--yellow){% else %}var(--green){% endif %};
+                                width:{{ s.squeeze_score }}%;height:100%;border-radius:4px"></div>
+                        </div>
+                        <span style="color:{% if s.squeeze_score > 60 %}var(--red){% elif s.squeeze_score > 30 %}var(--yellow){% else %}var(--green){% endif %}">
+                            {{ "%.0f" | format(s.squeeze_score) }}
+                        </span>
+                    </div>
+                </td>
+                <td>{{ s.short_interest_pct or '—' }}{% if s.short_interest_pct %}%{% endif %}</td>
+                <td>{{ s.days_to_cover or '—' }}{% if s.days_to_cover %}d{% endif %}</td>
+                <td style="color:{% if (s.volume_ratio or 1) > 2 %}var(--yellow){% else %}var(--text-secondary){% endif %}">
+                    {{ "%.1f" | format(s.volume_ratio or 1) }}x
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- ── Flow Toxicity ── -->
+<div class="section">
+    <div class="section-title">Order Flow Toxicity (PIN Model)</div>
+    <div class="grid-3">
+        {% for ft in flow_toxicity %}
+        <div class="card">
+            <div class="card-label">{{ ft.ticker }}</div>
+            <div class="card-value">{{ ft.pin_score }}</div>
+            <div class="card-sub">
+                <span class="badge-regime badge-{{ ft.toxicity_regime | lower }}">{{ ft.toxicity_regime }}</span>
+            </div>
+            <div style="color:var(--text-muted);font-size:11px;margin-top:8px">{{ ft.interpretation }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

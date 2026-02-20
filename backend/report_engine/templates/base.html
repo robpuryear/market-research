@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    {% if standalone %}
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    {% endif %}
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
+            --border: #334155;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --green: #22c55e;
+            --red: #ef4444;
+            --yellow: #facc15;
+            --blue: #60a5fa;
+            --purple: #a78bfa;
+            --orange: #f97316;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            padding: 0;
+        }
+
+        .report-header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .report-header .logo {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--blue);
+            letter-spacing: 2px;
+        }
+
+        .report-header .meta {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .report-header .badge {
+            background: var(--purple);
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .report-body {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 32px;
+        }
+
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--purple);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+        }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 16px;
+        }
+
+        .card-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .card-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .card-sub {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .badge-regime {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .badge-bull { background: #166534; color: #86efac; }
+        .badge-bear { background: #7f1d1d; color: #fca5a5; }
+        .badge-neutral { background: #374151; color: #d1d5db; }
+        .badge-volatile { background: #7c2d12; color: #fdba74; }
+
+        .badge-low { background: #166534; color: #86efac; }
+        .badge-elevated { background: #854d0e; color: #fde68a; }
+        .badge-high { background: #7f1d1d; color: #fca5a5; }
+        .badge-extreme { background: #450a0a; color: #fca5a5; }
+
+        .positive { color: var(--green); }
+        .negative { color: var(--red); }
+        .neutral { color: var(--text-secondary); }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .data-table th {
+            background: #0f172a;
+            color: var(--text-muted);
+            padding: 8px 12px;
+            text-align: left;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #1e293b;
+            color: var(--text-secondary);
+        }
+
+        .data-table tr:hover td {
+            background: #1e293b;
+        }
+
+        .chart-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .signal-list { list-style: none; }
+        .signal-list li {
+            padding: 6px 12px;
+            margin: 4px 0;
+            background: #1e293b;
+            border-left: 3px solid var(--purple);
+            font-size: 12px;
+            color: var(--text-primary);
+        }
+
+        .reddit-post {
+            border-left: 3px solid var(--border);
+            padding: 10px 14px;
+            margin: 8px 0;
+        }
+
+        .reddit-post.positive { border-left-color: var(--green); }
+        .reddit-post.negative { border-left-color: var(--red); }
+        .reddit-post.neutral { border-left-color: #334155; }
+
+        .reddit-post .post-title { color: var(--text-primary); font-size: 12px; }
+        .reddit-post .post-meta { color: var(--text-muted); font-size: 10px; margin-top: 4px; }
+
+        .report-footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 16px 32px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 10px;
+            margin-top: 32px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .report-body { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-header">
+        <div>
+            <div class="logo">▸ MARKET INTELLIGENCE</div>
+            <div class="meta">Generated: {{ generated_at }}</div>
+        </div>
+        <div>
+            <span class="badge">{{ report_type }}</span>
+        </div>
+    </div>
+
+    <div class="report-body">
+        {% block content %}{% endblock %}
+    </div>
+
+    <div class="report-footer">
+        Market Intelligence System · Data sourced from yfinance, Reddit PRAW · For informational purposes only · Not financial advice
+    </div>
+</body>
+</html>

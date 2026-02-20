@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- ── Executive Summary ── -->
+<div class="section">
+    <div class="section-title">Executive Summary</div>
+    <div class="grid-4">
+        <div class="card">
+            <div class="card-label">VIX</div>
+            <div class="card-value">{{ snapshot.vix }}</div>
+            <div class="card-sub">
+                <span class="badge-regime badge-{{ snapshot.vix_regime | lower }}">{{ snapshot.vix_regime }}</span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-label">Fear &amp; Greed</div>
+            <div class="card-value">{{ snapshot.fear_greed_approx }}</div>
+            <div class="card-sub">
+                {% if snapshot.fear_greed_approx >= 60 %}
+                <span style="color:var(--green)">Greed</span>
+                {% elif snapshot.fear_greed_approx <= 40 %}
+                <span style="color:var(--red)">Fear</span>
+                {% else %}
+                <span style="color:var(--text-secondary)">Neutral</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-label">Market Regime</div>
+            <div class="card-value" style="font-size:16px">
+                <span class="badge-regime badge-{{ snapshot.market_regime | lower }}">{{ snapshot.market_regime }}</span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-label">10Y Yield</div>
+            <div class="card-value">{{ snapshot.yield_10y or '—' }}%</div>
+            <div class="card-sub">Spread: {{ snapshot.yield_spread or '—' }}%</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Index Levels ── -->
+<div class="section">
+    <div class="section-title">Index Levels</div>
+    <div class="grid-3">
+        {% for index in [snapshot.spy, snapshot.qqq, snapshot.iwm] %}
+        <div class="card">
+            <div class="card-label">{{ index.ticker }}</div>
+            <div class="card-value">${{ "%.2f" | format(index.price) }}</div>
+            <div class="card-sub">
+                <span class="{{ 'positive' if index.change_pct >= 0 else 'negative' }}">
+                    {{ "%+.2f" | format(index.change_pct) }}%
+                </span>
+                &nbsp;|&nbsp; RSI: {{ index.rsi or '—' }}
+                &nbsp;|&nbsp; Vol: {{ "%.1f" | format(index.volume_ratio or 1) }}x
+            </div>
+            <div class="card-sub" style="margin-top:8px">
+                {% if index.ma_20 %}MA20: ${{ "%.2f" | format(index.ma_20) }}{% endif %}
+                &nbsp;|&nbsp;
+                {% if index.ma_200 %}MA200: ${{ "%.2f" | format(index.ma_200) }}{% endif %}
+                &nbsp;
+                {% if index.above_200ma is not none %}
+                    <span class="{{ 'positive' if index.above_200ma else 'negative' }}">
+                        {{ '▲ Above' if index.above_200ma else '▼ Below' }} 200MA
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ── VIX Gauge ── -->
+<div class="section">
+    <div class="section-title">Volatility</div>
+    <div class="grid-2">
+        <div class="chart-container">{{ vix_gauge_html | safe }}</div>
+        <div class="card">
+            <div class="card-label">Interpretation</div>
+            <p style="color:var(--text-secondary);margin-top:8px;font-size:12px">
+                {% if snapshot.vix < 15 %}
+                Low volatility environment. Markets are complacent. Premium selling strategies favored.
+                {% elif snapshot.vix < 25 %}
+                Elevated but manageable volatility. Normal market conditions with some uncertainty.
+                {% elif snapshot.vix < 35 %}
+                High volatility. Fear is elevated. Consider hedging and reduced position sizes.
+                {% else %}
+                Extreme volatility / market panic. Tail risk is elevated. Defensive posture warranted.
+                {% endif %}
+            </p>
+            {% if snapshot.yield_spread is not none %}
+            <div style="margin-top:16px">
+                <div class="card-label">Yield Curve</div>
+                <div style="font-size:16px;font-weight:bold;
+                    color:{{ '#22c55e' if (snapshot.yield_spread or 0) > 0 else '#ef4444' }}">
+                    {{ "%+.3f" | format(snapshot.yield_spread) }}%
+                </div>
+                <div style="color:var(--text-muted);font-size:11px">
+                    {{ 'Normal (positive spread)' if (snapshot.yield_spread or 0) > 0 else 'Inverted (recession signal)' }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ── Sector Performance ── -->
+<div class="section">
+    <div class="section-title">Sector Rotation</div>
+    <div class="chart-container">{{ sector_heatmap_html | safe }}</div>
+    {{ sector_table_html | safe }}
+</div>
+
+<!-- ── Watchlist Overview ── -->
+<div class="section">
+    <div class="section-title">Watchlist Summary</div>
+    {{ watchlist_table_html | safe }}
+</div>
+
+<!-- ── Market Breadth ── -->
+{% if breadth %}
+<div class="section">
+    <div class="section-title">Market Breadth</div>
+    <div class="grid-4">
+        <div class="card">
+            <div class="card-label">Adv / Dec</div>
+            <div class="card-value">{{ breadth.advancing }} / {{ breadth.declining }}</div>
+            <div class="card-sub">Ratio: {{ "%.2f" | format(breadth.advance_decline_ratio) }}</div>
+        </div>
+        <div class="card">
+            <div class="card-label">New Highs / Lows</div>
+            <div class="card-value">{{ breadth.new_highs }} / {{ breadth.new_lows }}</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Above 200MA</div>
+            <div class="card-value">{{ "%.0f" | format(breadth.above_200ma_pct * 100) }}%</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

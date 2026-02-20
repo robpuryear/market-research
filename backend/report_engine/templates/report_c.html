@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- ── Company Header ── -->
+<div class="section">
+    <div class="section-title">Company Profile</div>
+    <div class="grid-2">
+        <div class="card">
+            <div style="font-size:20px;font-weight:bold;color:var(--blue)">{{ detail.company_name }}</div>
+            <div style="color:var(--text-muted);margin-top:4px">{{ detail.sector }} · {{ detail.industry }}</div>
+            <div style="margin-top:16px">
+                <div class="card-label">Price</div>
+                <div class="card-value">${{ "%.2f" | format(detail.price) }}</div>
+                <div class="card-sub">
+                    <span class="{{ 'positive' if detail.change_pct >= 0 else 'negative' }}">
+                        {{ "%+.2f" | format(detail.change_pct) }}%
+                    </span>
+                    today
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="grid-2" style="gap:12px">
+                <div>
+                    <div class="card-label">Market Cap</div>
+                    <div style="color:var(--text-primary);font-size:14px">
+                        {% if detail.market_cap %}
+                        ${{ "%.1f" | format(detail.market_cap / 1e9) }}B
+                        {% else %}—{% endif %}
+                    </div>
+                </div>
+                <div>
+                    <div class="card-label">P/E Ratio</div>
+                    <div style="color:var(--text-primary);font-size:14px">{{ "%.1f" | format(detail.pe_ratio) if detail.pe_ratio else '—' }}</div>
+                </div>
+                <div>
+                    <div class="card-label">Forward P/E</div>
+                    <div style="color:var(--text-primary);font-size:14px">{{ "%.1f" | format(detail.forward_pe) if detail.forward_pe else '—' }}</div>
+                </div>
+                <div>
+                    <div class="card-label">P/B Ratio</div>
+                    <div style="color:var(--text-primary);font-size:14px">{{ "%.2f" | format(detail.pb_ratio) if detail.pb_ratio else '—' }}</div>
+                </div>
+                <div>
+                    <div class="card-label">Debt/Equity</div>
+                    <div style="color:var(--text-primary);font-size:14px">{{ "%.1f" | format(detail.debt_to_equity) if detail.debt_to_equity else '—' }}</div>
+                </div>
+                <div>
+                    <div class="card-label">Rev Growth</div>
+                    <div style="color:var(--text-primary);font-size:14px">
+                        {% if detail.revenue_growth %}
+                        <span class="{{ 'positive' if detail.revenue_growth >= 0 else 'negative' }}">
+                            {{ "%+.1f" | format(detail.revenue_growth * 100) }}%
+                        </span>
+                        {% else %}—{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Technical Chart ── -->
+<div class="section">
+    <div class="section-title">Technical Analysis — {{ ticker }}</div>
+    <div class="chart-container">{{ candlestick_html | safe }}</div>
+    <div class="grid-2">
+        <div class="chart-container">{{ rsi_html | safe }}</div>
+        <div class="chart-container">{{ macd_html | safe }}</div>
+    </div>
+    <div class="card" style="margin-top:12px">
+        <div class="card-label">Current Signal</div>
+        <div style="font-size:16px;font-weight:bold;
+            color:{% if tech.current_signal == 'bullish' %}var(--green){% elif tech.current_signal == 'bearish' %}var(--red){% else %}var(--text-secondary){% endif %}">
+            {{ tech.current_signal | upper }}
+        </div>
+        <div style="margin-top:12px">
+            <span style="color:var(--text-muted)">Support:</span>
+            {% for s in tech.support_levels[-3:] %}${{ s }}{% if not loop.last %}, {% endif %}{% endfor %}
+            &nbsp;&nbsp;
+            <span style="color:var(--text-muted)">Resistance:</span>
+            {% for r in tech.resistance_levels[:3] %}${{ r }}{% if not loop.last %}, {% endif %}{% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- ── Analyst Coverage ── -->
+<div class="section">
+    <div class="section-title">Analyst Coverage &amp; Earnings</div>
+    <div class="grid-3">
+        <div class="card">
+            <div class="card-label">Consensus Rating</div>
+            <div class="card-value" style="font-size:16px">{{ detail.analyst_rating or '—' }}</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Price Target</div>
+            {% if detail.price_target %}
+            <div class="card-value">${{ "%.2f" | format(detail.price_target) }}</div>
+            <div class="card-sub">
+                Low: ${{ "%.2f" | format(detail.price_target_low) if detail.price_target_low else '—' }} /
+                High: ${{ "%.2f" | format(detail.price_target_high) if detail.price_target_high else '—' }}
+            </div>
+            <div class="card-sub">
+                Upside:
+                <span class="{{ 'positive' if detail.price_target > detail.price else 'negative' }}">
+                    {{ "%+.1f" | format((detail.price_target / detail.price - 1) * 100) }}%
+                </span>
+            </div>
+            {% else %}
+            <div class="card-value">—</div>
+            {% endif %}
+        </div>
+        <div class="card">
+            <div class="card-label">Next Earnings</div>
+            <div class="card-value" style="font-size:15px">{{ detail.earnings_date or '—' }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Options Flow ── -->
+<div class="section">
+    <div class="section-title">Unusual Options Flow</div>
+    {{ options_flow_html | safe }}
+</div>
+
+<!-- ── Short Interest ── -->
+<div class="section">
+    <div class="section-title">Short Interest &amp; Squeeze</div>
+    <div class="grid-3">
+        <div class="card">
+            <div class="card-label">Short % of Float</div>
+            <div class="card-value">
+                {% if detail.short_interest_pct %}
+                {{ "%.1f" | format(detail.short_interest_pct * 100) }}%
+                {% else %}—{% endif %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-label">Days to Cover</div>
+            <div class="card-value">{{ "%.1f" | format(detail.short_ratio) if detail.short_ratio else '—' }}</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Institutional Own.</div>
+            <div class="card-value">
+                {% if detail.institutional_ownership_pct %}
+                {{ "%.1f" | format(detail.institutional_ownership_pct * 100) }}%
+                {% else %}—{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Insider Transactions ── -->
+<div class="section">
+    <div class="section-title">Recent Insider Transactions</div>
+    {{ insider_table_html | safe }}
+</div>
+
+<!-- ── ML Signals ── -->
+{% if signals %}
+<div class="section">
+    <div class="section-title">Technical Signals</div>
+    <ul class="signal-list">
+        {% for sig in signals %}
+        <li>{{ sig }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% endblock %}
