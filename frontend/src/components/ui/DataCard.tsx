@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { clsx } from "clsx";
 
 interface DataCardProps {
-  label: string;
+  label: ReactNode;
   value: ReactNode;
   sub?: ReactNode;
   className?: string;
