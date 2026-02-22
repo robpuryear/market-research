@@ -48,9 +48,17 @@ export default function OptionsPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Options Chain</h1>
-          <p className="text-gray-600 mt-1">View options contracts with Greeks and analytics</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Options Chain</h1>
+            <p className="text-gray-600 mt-1">View options contracts with Greeks and analytics</p>
+          </div>
+          <a
+            href="/options/spreads"
+            className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+          >
+            Spread Builder
+          </a>
         </div>
 
         {/* Search */}

@@ -77,6 +77,11 @@ export default function SpreadBuilderPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
+          <div className="mb-3">
+            <a href="/options" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+              ← Back to Options Chain
+            </a>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900">Spread Builder</h1>
           <p className="text-gray-600 mt-1">Build and analyze options spreads with P/L diagrams</p>
         </div>
