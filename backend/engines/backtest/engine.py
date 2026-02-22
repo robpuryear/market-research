@@ -20,7 +20,15 @@ from engines.backtest.historical_data import (
     calculate_max_drawdown,
     calculate_cagr,
 )
-from engines.backtest.strategies import buy_hold, rsi_reversal
+from engines.backtest.strategies import (
+    buy_hold,
+    rsi_reversal,
+    macd_cross,
+    ma_cross,
+    bb_breakout,
+    momentum,
+    multi_factor,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +57,16 @@ async def run_backtest(config: BacktestConfig) -> BacktestResult:
         trades, equity_curve = await buy_hold.execute(df, config)
     elif config.strategy_type == "rsi_reversal":
         trades, equity_curve = await rsi_reversal.execute(df, config)
+    elif config.strategy_type == "macd_cross":
+        trades, equity_curve = await macd_cross.execute(df, config)
+    elif config.strategy_type == "ma_cross":
+        trades, equity_curve = await ma_cross.execute(df, config)
+    elif config.strategy_type == "bb_breakout":
+        trades, equity_curve = await bb_breakout.execute(df, config)
+    elif config.strategy_type == "momentum":
+        trades, equity_curve = await momentum.execute(df, config)
+    elif config.strategy_type == "multi_factor":
+        trades, equity_curve = await multi_factor.execute(df, config)
     else:
         raise ValueError(f"Unknown strategy type: {config.strategy_type}")
 
