@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.routes import market, watchlist, sentiment, reports, scheduler as scheduler_routes, analytics, backtest, options
+from api.routes import market, watchlist, sentiment, reports, scheduler as scheduler_routes, analytics, backtest, options, alerts
 from core import scheduler as sched
 
 logging.basicConfig(
@@ -81,6 +81,7 @@ app.include_router(scheduler_routes.router)
 app.include_router(analytics.router)
 app.include_router(backtest.router)
 app.include_router(options.router)
+app.include_router(alerts.router)
 
 
 @app.get("/health")

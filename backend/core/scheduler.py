@@ -109,6 +109,15 @@ async def _refresh_analytics():
         logger.error(f"Scheduler: analytics refresh failed: {e}")
 
 
+async def _evaluate_alerts():
+    try:
+        from engines.alerts.evaluator import evaluate_all_alerts
+        await evaluate_all_alerts()
+        logger.debug("Alert evaluation completed")
+    except Exception as e:
+        logger.error(f"Scheduler: alert evaluation failed: {e}")
+
+
 def setup_scheduler():
     """Register all scheduled jobs."""
     # Market snapshot: every 5 min
@@ -196,6 +205,15 @@ def setup_scheduler():
         CronTrigger(day_of_week="mon-fri", hour=16, minute=30, timezone="America/New_York"),
         id="analytics_scores",
         name="Analytics Scores Refresh",
+        replace_existing=True,
+    )
+
+    # Alert evaluation: every 5 minutes
+    scheduler.add_job(
+        _evaluate_alerts,
+        IntervalTrigger(minutes=5),
+        id="alert_evaluation",
+        name="Alert Evaluation",
         replace_existing=True,
     )
 
