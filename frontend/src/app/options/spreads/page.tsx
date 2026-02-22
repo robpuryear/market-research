@@ -240,7 +240,7 @@ export default function SpreadBuilderPage() {
                     <div className="bg-blue-50 p-4 rounded">
                       <div className="text-sm text-gray-600">Risk/Reward</div>
                       <div className="text-2xl font-bold text-blue-600">
-                        {analysis.risk_reward_ratio.toFixed(2)}
+                        {analysis.risk_reward_ratio?.toFixed(2) ?? '—'}
                       </div>
                     </div>
                   </div>
