@@ -141,7 +141,7 @@ async def fetch_options_chain(
         )
 
         # Cache for 5 minutes (options data changes frequently)
-        cache.set(cache_key, chain.model_dump(), ttl=300)
+        cache.set(cache_key, chain.model_dump())
 
         logger.info(f"Fetched options chain: {len(calls)} calls, {len(puts)} puts")
         return chain
@@ -299,7 +299,7 @@ async def fetch_expirations(ticker: str) -> List[ExpirationDate]:
             result.append(exp_info)
 
         # Cache for 1 hour (expirations don't change often)
-        cache.set(cache_key, [e.model_dump() for e in result], ttl=3600)
+        cache.set(cache_key, [e.model_dump() for e in result])
 
         logger.info(f"Found {len(result)} expirations for {ticker}")
         return result
@@ -364,7 +364,7 @@ async def fetch_options_analytics(ticker: str) -> Optional[OptionsAnalytics]:
         )
 
         # Cache for 15 minutes
-        cache.set(cache_key, analytics.model_dump(), ttl=900)
+        cache.set(cache_key, analytics.model_dump())
 
         return analytics
 
