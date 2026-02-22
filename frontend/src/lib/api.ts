@@ -26,6 +26,7 @@ import type {
   OptionsChain,
   OptionsAnalytics,
   ExpirationDate,
+  SpreadAnalysis,
 } from "./types";
 
 // OptionsGreeks type (from backend model)
@@ -201,3 +202,10 @@ export const fetchOptionsExpirations = (ticker: string) =>
 
 export const fetchOptionsAnalytics = (ticker: string) =>
   apiFetch<OptionsAnalytics>(`/api/options/analytics/${ticker}`);
+
+export const analyzeSpread = (request: { ticker: string; spot_price: number; legs: any[]; spread_type?: string }) =>
+  apiFetch<SpreadAnalysis>('/api/options/spread/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });

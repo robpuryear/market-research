@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { analyzeSpread } from "@/lib/api";
 import type { SpreadLeg, SpreadAnalysis } from "@/lib/types";
 
 // Add SpreadAnalysis types if not already in types.ts
@@ -62,11 +62,7 @@ export default function SpreadBuilderPage() {
         spread_type: spreadType,
       };
 
-      const result = await apiFetch<SpreadAnalysis>("/api/options/spread/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
-      });
+      const result = await analyzeSpread(request);
 
       setAnalysis(result);
     } catch (err) {
@@ -308,7 +304,7 @@ export default function SpreadBuilderPage() {
             ) : (
               <div className="bg-white rounded-lg shadow p-12 text-center">
                 <div className="text-gray-400 text-lg">
-                  Configure your spread and click "Analyze Spread" to see results
+                  Configure your spread and click &quot;Analyze Spread&quot; to see results
                 </div>
               </div>
             )}
