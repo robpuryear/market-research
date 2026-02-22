@@ -87,7 +87,7 @@ export function NewsSentimentPanel() {
   return (
     <div className="bg-white border border-gray-300 rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-sm font-semibold text-purple-700 uppercase tracking-widest">News Sentiment (Alpha Vantage)</div>
+        <div className="text-sm font-semibold text-purple-700 uppercase tracking-widest">News Sentiment (Finnhub)</div>
         <div className="flex gap-1 flex-wrap justify-end">
           {tickers.map((t) => (
             <button
