@@ -37,7 +37,18 @@ async def fetch_historical_data(
 
     if cached:
         logger.info(f"Using cached historical data for {ticker}")
-        return pd.DataFrame(cached)
+        df = pd.DataFrame(cached)
+        # Restore datetime index (was reset for caching)
+        # Check for 'Date' (yfinance default) or 'date' or 'index'
+        date_col = None
+        for col in ['Date', 'date', 'index']:
+            if col in df.columns:
+                date_col = col
+                break
+        if date_col:
+            df[date_col] = pd.to_datetime(df[date_col])
+            df.set_index(date_col, inplace=True)
+        return df
 
     try:
         logger.info(f"Fetching historical data for {ticker} from {start_date} to {end_date}")
