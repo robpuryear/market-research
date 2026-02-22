@@ -5,15 +5,19 @@ Endpoints for options chain, Greeks, analytics, and spreads.
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from typing import Optional
+from pydantic import BaseModel
+from typing import Optional, List
 import logging
 
 from models.options import (
     OptionsChain,
     OptionsAnalytics,
     ExpirationDate,
+    SpreadLeg,
+    SpreadAnalysis,
 )
 from engines.options import chain as options_engine
+from engines.options import spreads as spreads_engine
 
 logger = logging.getLogger(__name__)
 
@@ -113,4 +117,47 @@ async def get_options_analytics(ticker: str):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch options analytics: {str(e)}"
+        )
+
+
+class SpreadRequest(BaseModel):
+    ticker: str
+    spot_price: float
+    legs: List[SpreadLeg]
+    spread_type: Optional[str] = None
+
+
+@router.post("/spread/analyze", response_model=SpreadAnalysis)
+async def analyze_spread(request: SpreadRequest):
+    """
+    Analyze an options spread strategy.
+
+    Calculates max profit/loss, breakeven points, P/L diagram, and Greeks.
+
+    Supported spreads:
+    - Vertical spreads (bull call, bear put, etc.)
+    - Iron condor
+    - Butterflies
+    - Custom multi-leg strategies
+    """
+    try:
+        logger.info(f"Analyzing {request.spread_type or 'custom'} spread for {request.ticker}")
+
+        analysis = spreads_engine.analyze_spread(
+            ticker=request.ticker,
+            spot_price=request.spot_price,
+            legs=request.legs,
+            spread_type=request.spread_type
+        )
+
+        return analysis
+
+    except ValueError as e:
+        logger.error(f"Invalid spread configuration: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to analyze spread: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to analyze spread: {str(e)}"
         )
