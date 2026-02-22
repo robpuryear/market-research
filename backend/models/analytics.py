@@ -55,3 +55,22 @@ class ScanCandidate(BaseModel):
     market_cap: Optional[float] = None
     sector: Optional[str] = None
     timestamp: datetime
+
+
+class SentimentComponent(BaseModel):
+    """Individual component of composite sentiment"""
+    name: str
+    score: float  # -1.0 to +1.0
+    weight: float  # 0.0 to 1.0
+    confidence: float  # 0.0 to 1.0
+    description: str
+
+
+class CompositeSentiment(BaseModel):
+    """Composite sentiment score combining multiple factors"""
+    ticker: str
+    composite_score: float  # -100 to +100
+    composite_label: str  # "Very Bearish" | "Bearish" | "Neutral" | "Bullish" | "Very Bullish"
+    confidence: float  # 0.0 to 1.0
+    components: List[SentimentComponent]
+    timestamp: datetime

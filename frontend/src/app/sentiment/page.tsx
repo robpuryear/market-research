@@ -3,6 +3,7 @@ import { RedditFeed } from "@/components/sentiment/RedditFeed";
 import { SentimentGauge } from "@/components/sentiment/SentimentGauge";
 import { FlowToxicityMeter } from "@/components/sentiment/FlowToxicityMeter";
 import { NewsSentimentPanel } from "@/components/sentiment/NewsSentimentPanel";
+import { CompositeSentimentPanel } from "@/components/sentiment/CompositeSentimentPanel";
 import { useRedditSentiment } from "@/hooks/useSentiment";
 
 const FLOW_TICKERS = ["SPY", "QQQ", "NVDA", "TSLA", "AAPL"];
@@ -12,6 +13,8 @@ export default function SentimentPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <h1 className="text-lg font-bold text-gray-800 font-mono tracking-wide">&#9670; Sentiment</h1>
+
+      <CompositeSentimentPanel />
 
       <SentimentGauge />
 

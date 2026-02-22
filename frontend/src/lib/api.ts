@@ -19,6 +19,7 @@ import type {
   CorrelationMatrix,
   EarningsCalendarEntry,
   ScanCandidate,
+  CompositeSentiment,
 } from "./types";
 
 // OptionsGreeks type (from backend model)
@@ -166,3 +167,6 @@ export const fetchMarketScan = (params?: {
   const url = `/api/analytics/market-scan${queryParams.toString() ? `?${queryParams}` : ""}`;
   return apiFetch<ScanCandidate[]>(url);
 };
+
+export const fetchCompositeSentiment = (ticker: string) =>
+  apiFetch<CompositeSentiment>(`/api/analytics/composite-sentiment/${ticker}`);

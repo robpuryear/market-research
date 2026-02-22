@@ -1,6 +1,6 @@
 "use client";
 import useSWR from "swr";
-import { fetchSqueeze, fetchCorrelation, fetchSignals, fetchEarningsCalendar } from "@/lib/api";
+import { fetchSqueeze, fetchCorrelation, fetchSignals, fetchEarningsCalendar, fetchCompositeSentiment } from "@/lib/api";
 
 export function useSqueeze() {
   return useSWR("analytics-squeeze", fetchSqueeze, {
@@ -32,4 +32,15 @@ export function useEarningsCalendar() {
     refreshInterval: 3_600_000,
     revalidateOnFocus: false,
   });
+}
+
+export function useCompositeSentiment(ticker: string) {
+  return useSWR(
+    ticker ? `composite-sentiment-${ticker}` : null,
+    () => fetchCompositeSentiment(ticker),
+    {
+      refreshInterval: 600_000,  // 10 minutes
+      revalidateOnFocus: false,
+    }
+  );
 }

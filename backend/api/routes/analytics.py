@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
-from engines.analytics import ml_signals, correlation, short_squeeze, market_scanner
-from models.analytics import MLSignalsData, MLSignal, SqueezeScore, CorrelationMatrix, ScanCandidate
+from engines.analytics import ml_signals, correlation, short_squeeze, market_scanner, composite_sentiment
+from models.analytics import MLSignalsData, MLSignal, SqueezeScore, CorrelationMatrix, ScanCandidate, CompositeSentiment
 from datetime import datetime, timezone
 from typing import List
 
@@ -129,5 +129,25 @@ async def scan_market(
             top_n=top_n,
         )
         return candidates
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/composite-sentiment/{ticker}", response_model=CompositeSentiment)
+async def get_composite_sentiment(ticker: str):
+    """
+    Get composite sentiment score for a stock.
+
+    Combines multiple sentiment signals:
+    - News sentiment (30%)
+    - Analyst ratings & price targets (20%)
+    - Insider trading activity (15%)
+    - Options flow & unusual activity (20%)
+    - Technical momentum (15%)
+
+    Returns score from -100 (very bearish) to +100 (very bullish).
+    """
+    try:
+        return await composite_sentiment.compute_composite_sentiment(ticker.upper())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

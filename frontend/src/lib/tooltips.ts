@@ -71,6 +71,9 @@ export const TOOLTIPS = {
   // Scanner Composite Score
   compositeScore: "Composite Score - Weighted combination of squeeze potential (30%), ML signals (25%), options activity (25%), IV rank (10%), and volume (10%). Higher = better opportunity",
 
+  // Composite Sentiment
+  compositeSentiment: "Composite Sentiment Score - Multi-factor sentiment analysis combining News Sentiment (30%), Analyst Ratings & Price Targets (20%), Insider Trading Activity (15%), Options Flow & Unusual Activity (20%), and Technical Momentum (15%). Score ranges from -100 (very bearish) to +100 (very bullish). Higher confidence = more data available for analysis.",
+
   // Report Types
   dailyReport: "Pre-market (6:30 AM) and post-market (5:00 PM) market summary with macro data and watchlist overview",
   analyticsReport: "End-of-day (4:30 PM) deep analytics: ML signals, correlation matrix, and short squeeze scores",

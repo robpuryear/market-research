@@ -311,3 +311,20 @@ export interface ScanCandidate {
   sector: string | null;
   timestamp: string;
 }
+
+export interface SentimentComponent {
+  name: string;
+  score: number;  // -1.0 to +1.0
+  weight: number;  // 0.0 to 1.0
+  confidence: number;  // 0.0 to 1.0
+  description: string;
+}
+
+export interface CompositeSentiment {
+  ticker: string;
+  composite_score: number;  // -100 to +100
+  composite_label: string;  // "Very Bearish" | "Bearish" | "Neutral" | "Bullish" | "Very Bullish"
+  confidence: number;  // 0.0 to 1.0
+  components: SentimentComponent[];
+  timestamp: string;
+}
