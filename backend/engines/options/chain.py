@@ -47,19 +47,36 @@ async def fetch_options_chain(
         logger.info(f"Fetching options chain for {ticker}, expiration: {expiration or 'nearest'}")
 
         stock = yf.Ticker(ticker)
-        spot_price = stock.info.get('currentPrice') or stock.info.get('regularMarketPrice')
+
+        # Get spot price - try multiple methods
+        try:
+            spot_price = stock.info.get('currentPrice') or stock.info.get('regularMarketPrice')
+        except Exception as e:
+            logger.warning(f"Failed to get info for {ticker}: {e}, trying history")
+            spot_price = None
 
         if not spot_price:
             # Fallback to recent price
-            hist = stock.history(period="1d")
-            if not hist.empty:
-                spot_price = hist['Close'].iloc[-1]
-            else:
-                logger.error(f"Could not get spot price for {ticker}")
-                return None
+            try:
+                hist = stock.history(period="1d")
+                if not hist.empty:
+                    spot_price = float(hist['Close'].iloc[-1])
+                    logger.info(f"Got spot price from history: ${spot_price}")
+            except Exception as e:
+                logger.error(f"Failed to get history for {ticker}: {e}")
+
+        if not spot_price:
+            logger.error(f"Could not get spot price for {ticker}")
+            return None
 
         # Get available expirations
-        expirations = stock.options
+        try:
+            expirations = stock.options
+            logger.info(f"Found {len(expirations) if expirations else 0} expirations for {ticker}")
+        except Exception as e:
+            logger.error(f"Failed to get expirations for {ticker}: {e}")
+            return None
+
         if not expirations or len(expirations) == 0:
             logger.warning(f"No options available for {ticker}")
             return None
@@ -247,9 +264,16 @@ async def fetch_expirations(ticker: str) -> List[ExpirationDate]:
 
     try:
         stock = yf.Ticker(ticker)
-        expirations = stock.options
+
+        try:
+            expirations = stock.options
+            logger.info(f"fetch_expirations: Found {len(expirations) if expirations else 0} expirations for {ticker}")
+        except Exception as e:
+            logger.error(f"fetch_expirations: Failed to get expirations for {ticker}: {e}")
+            return []
 
         if not expirations:
+            logger.warning(f"fetch_expirations: No expirations returned for {ticker}")
             return []
 
         result = []
