@@ -53,7 +53,7 @@ function NewsFeed({ ticker }: { ticker: string }) {
   if (!data) {
     return (
       <div className="text-xs text-gray-500 py-4 text-center">
-        Configure ALPHA_VANTAGE_API_KEY in .env to enable news sentiment
+        News sentiment unavailable (API timeout or no data)
       </div>
     );
   }
