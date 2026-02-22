@@ -554,3 +554,62 @@ export interface AlertNotification {
   read: boolean;
   data: Record<string, unknown>;
 }
+
+// Portfolio Types
+
+export interface Position {
+  id: string;
+  ticker: string;
+  quantity: number;
+  avg_cost_basis: number;
+  entry_date: string;
+  last_updated: string;
+  notes: string | null;
+  status: "open" | "closed";
+  current_price: number | null;
+  current_value: number | null;
+  unrealized_pnl: number | null;
+  unrealized_pnl_pct: number | null;
+  days_held: number | null;
+}
+
+export interface Transaction {
+  id: string;
+  position_id: string;
+  ticker: string;
+  transaction_type: "buy" | "sell" | "dividend";
+  quantity: number;
+  price: number;
+  total_value: number;
+  commission: number;
+  date: string;
+  timestamp: string;
+  notes: string | null;
+}
+
+export interface PortfolioMetrics {
+  total_value: number;
+  cash: number;
+  invested_value: number;
+  total_cost_basis: number;
+  unrealized_pnl: number;
+  unrealized_pnl_pct: number;
+  realized_pnl: number;
+  total_pnl: number;
+  total_return_pct: number;
+  day_change: number;
+  day_change_pct: number;
+  positions_count: number;
+  open_positions_count: number;
+  winning_positions_count: number;
+  losing_positions_count: number;
+  win_rate: number;
+  sharpe_ratio: number | null;
+  max_drawdown: number | null;
+  volatility: number | null;
+  beta: number | null;
+  largest_position_pct: number;
+  top_3_concentration: number;
+  sectors: Record<string, number>;
+  timestamp: string;
+}

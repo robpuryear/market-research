@@ -33,6 +33,9 @@ import type {
   PriceCondition,
   SignalCondition,
   EarningsCondition,
+  Position,
+  Transaction,
+  PortfolioMetrics,
 } from "./types";
 
 // OptionsGreeks type (from backend model)
@@ -240,3 +243,37 @@ export const fetchNotifications = (limit = 50, unreadOnly = false) =>
 
 export const markNotificationRead = (notifId: string) =>
   apiFetch(`/api/alerts/notifications/${notifId}/read`, { method: "PATCH" });
+
+// Portfolio API
+export const fetchPositions = (includeClosed = false) =>
+  apiFetch<Position[]>(`/api/portfolio/positions?include_closed=${includeClosed}`);
+
+export const fetchPosition = (positionId: string) =>
+  apiFetch<Position>(`/api/portfolio/positions/${positionId}`);
+
+export const addPosition = (position: { ticker: string; quantity: number; price: number; date: string; notes?: string }) =>
+  apiFetch<Position>("/api/portfolio/positions", {
+    method: "POST",
+    body: JSON.stringify(position),
+  });
+
+export const sellPosition = (positionId: string, sale: { quantity: number; price: number; date: string; notes?: string }) =>
+  apiFetch<Position>(`/api/portfolio/positions/${positionId}/sell`, {
+    method: "POST",
+    body: JSON.stringify(sale),
+  });
+
+export const updatePosition = (positionId: string, updates: { notes?: string }) =>
+  apiFetch<Position>(`/api/portfolio/positions/${positionId}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+
+export const deletePosition = (positionId: string) =>
+  apiFetch(`/api/portfolio/positions/${positionId}`, { method: "DELETE" });
+
+export const fetchPortfolioMetrics = (cash = 0) =>
+  apiFetch<PortfolioMetrics>(`/api/portfolio/metrics?cash=${cash}`);
+
+export const fetchTransactions = (positionId?: string) =>
+  apiFetch<Transaction[]>(`/api/portfolio/transactions${positionId ? `?position_id=${positionId}` : ""}`);
