@@ -45,16 +45,28 @@ async def fetch_news_sentiment(ticker: str) -> Optional[NewsSentimentData]:
             "apikey": settings.alpha_vantage_api_key,
         }
         logger.info(f"Fetching Alpha Vantage news for {ticker}")
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            resp = await client.get(AV_BASE, params=params)
-            logger.info(f"Alpha Vantage response status: {resp.status_code}")
-            resp.raise_for_status()
-            data = resp.json()
 
-            # Check for API error messages
-            if "Error Message" in data or "Note" in data:
-                logger.error(f"Alpha Vantage API error for {ticker}: {data}")
-                return None
+        # Retry up to 2 times with longer timeout
+        for attempt in range(2):
+            try:
+                async with httpx.AsyncClient(timeout=45.0) as client:
+                    resp = await client.get(AV_BASE, params=params)
+                    logger.info(f"Alpha Vantage response status: {resp.status_code}")
+                    resp.raise_for_status()
+                    data = resp.json()
+
+                    # Check for API error messages
+                    if "Error Message" in data or "Note" in data:
+                        logger.error(f"Alpha Vantage API error for {ticker}: {data}")
+                        return None
+
+                    break  # Success, exit retry loop
+            except (httpx.ConnectTimeout, httpx.ReadTimeout) as timeout_err:
+                if attempt == 0:
+                    logger.warning(f"Alpha Vantage timeout for {ticker}, retrying... ({timeout_err})")
+                    continue
+                else:
+                    raise  # Re-raise on final attempt
 
         # AV returns {"Information": "..."} when rate-limited or key is invalid
         if "Information" in data or "Note" in data:
