@@ -2,7 +2,6 @@
 import { RedditFeed } from "@/components/sentiment/RedditFeed";
 import { SentimentGauge } from "@/components/sentiment/SentimentGauge";
 import { FlowToxicityMeter } from "@/components/sentiment/FlowToxicityMeter";
-import { StockTwitsPanel } from "@/components/sentiment/StockTwitsPanel";
 import { NewsSentimentPanel } from "@/components/sentiment/NewsSentimentPanel";
 import { useRedditSentiment } from "@/hooks/useSentiment";
 
@@ -15,8 +14,6 @@ export default function SentimentPage() {
       <h1 className="text-lg font-bold text-gray-800 font-mono tracking-wide">&#9670; Sentiment</h1>
 
       <SentimentGauge />
-
-      <StockTwitsPanel />
 
       <NewsSentimentPanel />
 
