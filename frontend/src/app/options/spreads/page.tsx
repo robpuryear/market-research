@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { analyzeSpread } from "@/lib/api";
+import { analyzeSpread as analyzeSpreadAPI } from "@/lib/api";
 import type { SpreadLeg, SpreadAnalysis } from "@/lib/types";
 
 // Add SpreadAnalysis types if not already in types.ts
@@ -62,7 +62,7 @@ export default function SpreadBuilderPage() {
         spread_type: spreadType,
       };
 
-      const result = await analyzeSpread(request);
+      const result = await analyzeSpreadAPI(request);
 
       setAnalysis(result);
     } catch (err) {
