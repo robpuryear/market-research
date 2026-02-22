@@ -6,6 +6,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { AlertList } from "@/components/alerts/AlertList";
 import { CreateAlertModal } from "@/components/alerts/CreateAlertModal";
 import { NotificationBanner } from "@/components/alerts/NotificationBanner";
+import type { PriceCondition, SignalCondition, EarningsCondition } from "@/lib/types";
 
 export default function AlertsPage() {
   const { alerts, isLoading, createAlert, toggleAlert, deleteAlert } = useAlerts();
@@ -19,7 +20,13 @@ export default function AlertsPage() {
     setVisibleNotifications([latestNotif.id, ...visibleNotifications]);
   }
 
-  const handleCreateAlert = async (alertData: any) => {
+  const handleCreateAlert = async (alertData: {
+    ticker: string;
+    alert_type: string;
+    condition: PriceCondition | SignalCondition | EarningsCondition;
+    notification_methods: string[];
+    message?: string;
+  }) => {
     try {
       await createAlert(alertData);
     } catch (error) {

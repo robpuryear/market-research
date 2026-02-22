@@ -541,7 +541,7 @@ export interface Alert {
   triggered_at: string | null;
   trigger_count: number;
   message: string | null;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface AlertNotification {
@@ -552,5 +552,5 @@ export interface AlertNotification {
   alert_type: string;
   triggered_at: string;
   read: boolean;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }

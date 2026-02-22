@@ -30,6 +30,9 @@ import type {
   SpreadAnalysis,
   Alert,
   AlertNotification,
+  PriceCondition,
+  SignalCondition,
+  EarningsCondition,
 } from "./types";
 
 // OptionsGreeks type (from backend model)
@@ -217,7 +220,7 @@ export const analyzeSpread = (request: { ticker: string; spot_price: number; leg
 export const fetchAlerts = () =>
   apiFetch<Alert[]>("/api/alerts/");
 
-export const createAlert = (alert: { ticker: string; alert_type: string; condition: any; notification_methods?: string[]; message?: string }) =>
+export const createAlert = (alert: { ticker: string; alert_type: string; condition: PriceCondition | SignalCondition | EarningsCondition; notification_methods?: string[]; message?: string }) =>
   apiFetch<Alert>("/api/alerts/", {
     method: "POST",
     body: JSON.stringify(alert),

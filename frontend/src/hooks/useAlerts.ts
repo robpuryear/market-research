@@ -1,6 +1,6 @@
 import useSWR from "swr";
 import { fetchAlerts, createAlert as apiCreateAlert, updateAlert as apiUpdateAlert, deleteAlert as apiDeleteAlert } from "@/lib/api";
-import type { Alert } from "@/lib/types";
+import type { Alert, PriceCondition, SignalCondition, EarningsCondition } from "@/lib/types";
 
 export function useAlerts() {
   const { data, error, isLoading, mutate } = useSWR("/api/alerts", fetchAlerts, {
@@ -10,7 +10,7 @@ export function useAlerts() {
   const createAlert = async (alertData: {
     ticker: string;
     alert_type: string;
-    condition: any;
+    condition: PriceCondition | SignalCondition | EarningsCondition;
     notification_methods?: string[];
     message?: string;
   }) => {

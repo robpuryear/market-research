@@ -1,11 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import type { PriceCondition, SignalCondition, EarningsCondition } from "@/lib/types";
 
 interface CreateAlertModalProps {
   open: boolean;
   onClose: () => void;
-  onCreate: (alert: any) => void;
+  onCreate: (alert: {
+    ticker: string;
+    alert_type: string;
+    condition: PriceCondition | SignalCondition | EarningsCondition;
+    notification_methods: string[];
+    message?: string;
+  }) => void;
   defaultTicker?: string;
 }
 
@@ -31,7 +38,7 @@ export function CreateAlertModal({ open, onClose, onCreate, defaultTicker = "" }
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    let condition: any = {};
+    let condition: PriceCondition | SignalCondition | EarningsCondition;
 
     if (alertType === "price") {
       if (priceCondType === "pct_change") {
@@ -59,7 +66,8 @@ export function CreateAlertModal({ open, onClose, onCreate, defaultTicker = "" }
           direction: mlDirection || undefined,
         };
       }
-    } else if (alertType === "earnings") {
+    } else {
+      // Earnings alert
       condition = {
         days_before: parseInt(daysBefore),
         notify_on_surprise: false,
@@ -122,7 +130,7 @@ export function CreateAlertModal({ open, onClose, onCreate, defaultTicker = "" }
               <label className="block text-sm font-medium text-gray-700 mb-1">Alert Type</label>
               <select
                 value={alertType}
-                onChange={(e) => setAlertType(e.target.value as any)}
+                onChange={(e) => setAlertType(e.target.value as "price" | "signal" | "earnings")}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="price">Price</option>
@@ -138,7 +146,7 @@ export function CreateAlertModal({ open, onClose, onCreate, defaultTicker = "" }
                   <label className="block text-sm font-medium text-gray-700 mb-1">Condition</label>
                   <select
                     value={priceCondType}
-                    onChange={(e) => setPriceCondType(e.target.value as any)}
+                    onChange={(e) => setPriceCondType(e.target.value as "above" | "below" | "pct_change")}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="above">Above Price</option>
@@ -187,7 +195,7 @@ export function CreateAlertModal({ open, onClose, onCreate, defaultTicker = "" }
                   <label className="block text-sm font-medium text-gray-700 mb-1">Signal Type</label>
                   <select
                     value={signalType}
-                    onChange={(e) => setSignalType(e.target.value as any)}
+                    onChange={(e) => setSignalType(e.target.value as "rsi" | "ml_signal")}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="rsi">RSI Level</option>
@@ -201,7 +209,7 @@ export function CreateAlertModal({ open, onClose, onCreate, defaultTicker = "" }
                       <label className="block text-sm font-medium text-gray-700 mb-1">Operator</label>
                       <select
                         value={rsiOperator}
-                        onChange={(e) => setRsiOperator(e.target.value as any)}
+                        onChange={(e) => setRsiOperator(e.target.value as "above" | "below")}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="below">Below (Oversold)</option>
@@ -231,7 +239,7 @@ export function CreateAlertModal({ open, onClose, onCreate, defaultTicker = "" }
                     <label className="block text-sm font-medium text-gray-700 mb-1">Direction (Optional)</label>
                     <select
                       value={mlDirection}
-                      onChange={(e) => setMlDirection(e.target.value as any)}
+                      onChange={(e) => setMlDirection(e.target.value as "bullish" | "bearish" | "")}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Any Direction</option>

@@ -17,7 +17,7 @@ export function AlertCard({ alert, onToggle, onDelete }: AlertCardProps) {
   };
 
   const getConditionSummary = () => {
-    const cond = alert.condition as any;
+    const cond = alert.condition as Record<string, unknown>;
 
     if (alert.alert_type === "price") {
       if (cond.condition_type === "above") {
