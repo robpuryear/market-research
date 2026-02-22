@@ -1,4 +1,4 @@
-import type { Alert } from "@/lib/types";
+import type { Alert, PriceCondition, SignalCondition, EarningsCondition } from "@/lib/types";
 
 interface AlertCardProps {
   alert: Alert;
@@ -17,9 +17,8 @@ export function AlertCard({ alert, onToggle, onDelete }: AlertCardProps) {
   };
 
   const getConditionSummary = () => {
-    const cond = alert.condition as Record<string, unknown>;
-
     if (alert.alert_type === "price") {
+      const cond = alert.condition as PriceCondition;
       if (cond.condition_type === "above") {
         return `Above $${cond.threshold}`;
       } else if (cond.condition_type === "below") {
@@ -30,12 +29,14 @@ export function AlertCard({ alert, onToggle, onDelete }: AlertCardProps) {
         return `${cond.ma_period}MA cross`;
       }
     } else if (alert.alert_type === "signal") {
+      const cond = alert.condition as SignalCondition;
       if (cond.signal_type === "rsi") {
         return `RSI ${cond.operator} ${cond.threshold}`;
       } else if (cond.signal_type === "ml_signal") {
         return `ML signal (${cond.direction || "any"})`;
       }
     } else if (alert.alert_type === "earnings") {
+      const cond = alert.condition as EarningsCondition;
       return `${cond.days_before} days before earnings`;
     }
 
