@@ -6,6 +6,9 @@ class Settings(BaseSettings):
     # Alpha Vantage
     alpha_vantage_api_key: str = ""
 
+    # Finnhub
+    finnhub_api_key: str = ""
+
     # Polygon.io
     polygon_api_key: str = ""
 

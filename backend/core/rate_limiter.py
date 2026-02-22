@@ -47,11 +47,13 @@ class TokenBucket:
 
 # Per-provider rate limiters
 # Alpha Vantage: 25 calls/day = 25/(24*3600) = 0.000289 tokens/sec, capacity 5
+# Finnhub: 60 calls/min = 60/60 = 1 token/sec, capacity 10
 # Polygon: 5 calls/min = 5/60 = 0.0833 tokens/sec, capacity 5
 # yfinance: ~30 req/min practical limit; capacity=2 prevents burst, 0.5/sec = 1 req/2s
 # StockTwits: ~200 req/hour unauthenticated = 200/3600 ~ 0.056/sec, capacity 5
 _limiters: Dict[str, TokenBucket] = {
     "alpha_vantage": TokenBucket(capacity=5, refill_rate=25 / 86400),
+    "finnhub": TokenBucket(capacity=10, refill_rate=1.0),
     "polygon": TokenBucket(capacity=5, refill_rate=5 / 60),
     "yfinance": TokenBucket(capacity=2, refill_rate=0.5),
     "reddit": TokenBucket(capacity=10, refill_rate=1.0),

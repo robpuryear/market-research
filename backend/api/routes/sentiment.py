@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from engines.sentiment import reddit, flow_toxicity, dark_pool, stocktwits, av_news
+from engines.sentiment import reddit, flow_toxicity, dark_pool, stocktwits, finnhub_news
 
 router = APIRouter(prefix="/api/sentiment", tags=["sentiment"])
 
@@ -40,7 +40,7 @@ async def get_stocktwits(ticker: str):
 async def get_news_sentiment(ticker: str):
     """Returns Alpha Vantage news sentiment. Returns 204 if no API key configured."""
     try:
-        result = await av_news.fetch_news_sentiment(ticker.upper())
+        result = await finnhub_news.fetch_news_sentiment(ticker.upper())
         if result is None:
             from fastapi.responses import Response
             return Response(status_code=204)

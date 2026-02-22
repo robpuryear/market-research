@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from models.analytics import CompositeSentiment, SentimentComponent
-from engines.sentiment import av_news
+from engines.sentiment import finnhub_news
 from engines.market_data import options
 from engines.watchlist import fundamentals
 from core import cache
@@ -107,13 +107,13 @@ async def compute_composite_sentiment(ticker: str) -> CompositeSentiment:
 
 
 async def _compute_news_sentiment(ticker: str) -> Optional[SentimentComponent]:
-    """News sentiment from Alpha Vantage (-1 to +1)"""
+    """News sentiment from Finnhub (-1 to +1)"""
     try:
-        news_data = await av_news.fetch_news_sentiment(ticker)
+        news_data = await finnhub_news.fetch_news_sentiment(ticker)
         if not news_data:
             return None
 
-        # Alpha Vantage score is already -1 to +1
+        # Finnhub score is already -1 to +1
         score = news_data.avg_sentiment_score
         confidence = min(1.0, news_data.article_count / 10)  # More articles = higher confidence
 
