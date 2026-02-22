@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useCompositeSentiment } from "@/hooks/useAnalytics";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { WATCHLIST_TICKERS } from "@/lib/constants";
-import { InfoIcon } from "@/components/ui/InfoIcon";
+import { InfoIcon } from "@/components/ui/Tooltip";
 import { TOOLTIPS } from "@/lib/tooltips";
 
 const SCORE_COLOR = (score: number) => {
