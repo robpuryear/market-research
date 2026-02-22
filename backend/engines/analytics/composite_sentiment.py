@@ -102,7 +102,7 @@ async def compute_composite_sentiment(ticker: str) -> CompositeSentiment:
         timestamp=datetime.now(timezone.utc),
     )
 
-    cache.set(cache_key, result.model_dump(), ttl_type="sentiment")
+    cache.set(cache_key, result.model_dump())
     return result
 
 
