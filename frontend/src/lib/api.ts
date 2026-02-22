@@ -28,6 +28,8 @@ import type {
   ExpirationDate,
   SpreadLeg,
   SpreadAnalysis,
+  Alert,
+  AlertNotification,
 } from "./types";
 
 // OptionsGreeks type (from backend model)
@@ -210,3 +212,28 @@ export const analyzeSpread = (request: { ticker: string; spot_price: number; leg
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
   });
+
+// Alerts API
+export const fetchAlerts = () =>
+  apiFetch<Alert[]>("/api/alerts/");
+
+export const createAlert = (alert: { ticker: string; alert_type: string; condition: any; notification_methods?: string[]; message?: string }) =>
+  apiFetch<Alert>("/api/alerts/", {
+    method: "POST",
+    body: JSON.stringify(alert),
+  });
+
+export const updateAlert = (alertId: string, updates: Partial<Alert>) =>
+  apiFetch<Alert>(`/api/alerts/${alertId}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+
+export const deleteAlert = (alertId: string) =>
+  apiFetch(`/api/alerts/${alertId}`, { method: "DELETE" });
+
+export const fetchNotifications = (limit = 50, unreadOnly = false) =>
+  apiFetch<AlertNotification[]>(`/api/alerts/notifications/?limit=${limit}&unread_only=${unreadOnly}`);
+
+export const markNotificationRead = (notifId: string) =>
+  apiFetch(`/api/alerts/notifications/${notifId}/read`, { method: "PATCH" });

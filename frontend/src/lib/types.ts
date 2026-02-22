@@ -504,3 +504,53 @@ export interface SpreadAnalysis {
   pnl_at_expiration: number[];
   timestamp: string;
 }
+
+// Alerts & Notifications Types
+
+export interface PriceCondition {
+  condition_type: "above" | "below" | "pct_change" | "ma_cross";
+  threshold?: number;
+  percentage?: number;
+  ma_period?: number;
+}
+
+export interface SignalCondition {
+  signal_type: "rsi" | "macd" | "ml_signal" | "unusual_options";
+  operator: "above" | "below" | "equals" | "fired";
+  threshold?: number;
+  direction?: "bullish" | "bearish";
+}
+
+export interface EarningsCondition {
+  days_before: number;
+  notify_on_surprise: boolean;
+  surprise_threshold: number;
+}
+
+export type AlertCondition = PriceCondition | SignalCondition | EarningsCondition;
+
+export interface Alert {
+  id: string;
+  ticker: string;
+  alert_type: "price" | "signal" | "earnings";
+  condition: AlertCondition;
+  enabled: boolean;
+  notification_methods: string[];
+  created_at: string;
+  last_checked: string | null;
+  triggered_at: string | null;
+  trigger_count: number;
+  message: string | null;
+  metadata: Record<string, any>;
+}
+
+export interface AlertNotification {
+  id: string;
+  alert_id: string;
+  ticker: string;
+  message: string;
+  alert_type: string;
+  triggered_at: string;
+  read: boolean;
+  data: Record<string, any>;
+}
