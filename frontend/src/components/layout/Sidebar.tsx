@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
+import { NotificationBell } from "./NotificationBell";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: "◈" },
@@ -13,6 +14,7 @@ const NAV_ITEMS = [
   { href: "/scanner", label: "Scanner", icon: "🔍" },
   { href: "/sentiment", label: "Sentiment", icon: "◆" },
   { href: "/reports", label: "Reports", icon: "▣" },
+  { href: "/alerts", label: "Alerts", icon: "🔔" },
 ];
 
 export function Sidebar() {
@@ -21,10 +23,15 @@ export function Sidebar() {
   return (
     <aside className="w-52 min-h-screen bg-gray-50 border-r border-gray-300 flex flex-col">
       <div className="p-4 border-b border-gray-300">
-        <div className="text-blue-600 font-bold text-sm tracking-widest font-mono">
-          ▸ MARKET INTEL
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-blue-600 font-bold text-sm tracking-widest font-mono">
+              ▸ MARKET INTEL
+            </div>
+            <div className="text-gray-500 text-xs mt-0.5">v1.0.0</div>
+          </div>
+          <NotificationBell />
         </div>
-        <div className="text-gray-500 text-xs mt-0.5">v1.0.0</div>
       </div>
 
       <nav className="flex-1 p-3 space-y-1">
