@@ -120,7 +120,14 @@ async def execute(df: pd.DataFrame, config: BacktestConfig) -> Tuple[List[Trade]
                 pnl -= (position['commission_paid'] + commission)
                 return_pct = (exit_price - position['entry_price']) / position['entry_price']
 
-                hold_days = (exit_date - position['entry_date']).days
+                # Handle timezone-aware/naive datetime comparison
+                entry_dt = position['entry_date']
+                exit_dt = exit_date
+                if hasattr(entry_dt, 'tz') and entry_dt.tz is not None:
+                    entry_dt = entry_dt.tz_localize(None)
+                if hasattr(exit_dt, 'tz') and exit_dt.tz is not None:
+                    exit_dt = exit_dt.tz_localize(None)
+                hold_days = (exit_dt - entry_dt).days
 
                 # Record trade
                 trade = Trade(
