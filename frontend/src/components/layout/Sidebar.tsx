@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/watchlist", label: "Watchlist", icon: "◉" },
   { href: "/analytics", label: "Analytics", icon: "◎" },
   { href: "/backtest", label: "Backtest", icon: "◧" },
+  { href: "/options", label: "Options", icon: "◭" },
   { href: "/scanner", label: "Scanner", icon: "🔍" },
   { href: "/sentiment", label: "Sentiment", icon: "◆" },
   { href: "/reports", label: "Reports", icon: "▣" },

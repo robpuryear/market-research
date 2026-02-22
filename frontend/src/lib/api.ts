@@ -23,6 +23,9 @@ import type {
   BacktestConfig,
   BacktestResult,
   StrategyInfo,
+  OptionsChain,
+  OptionsAnalytics,
+  ExpirationDate,
 } from "./types";
 
 // OptionsGreeks type (from backend model)
@@ -184,3 +187,17 @@ export const runBacktest = (config: BacktestConfig) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(config),
   });
+
+// Options API
+export const fetchOptionsChain = (ticker: string, expiration?: string) => {
+  const url = expiration
+    ? `/api/options/chain/${ticker}?expiration=${expiration}`
+    : `/api/options/chain/${ticker}`;
+  return apiFetch<OptionsChain>(url);
+};
+
+export const fetchOptionsExpirations = (ticker: string) =>
+  apiFetch<ExpirationDate[]>(`/api/options/expirations/${ticker}`);
+
+export const fetchOptionsAnalytics = (ticker: string) =>
+  apiFetch<OptionsAnalytics>(`/api/options/analytics/${ticker}`);

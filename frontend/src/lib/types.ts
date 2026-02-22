@@ -409,3 +409,68 @@ export interface StrategyParameter {
   default: string | number;
   description: string;
 }
+
+// Options Types
+
+export interface OptionContract {
+  symbol: string;
+  strike: number;
+  expiration: string;
+  contract_type: "call" | "put";
+  bid: number | null;
+  ask: number | null;
+  last: number | null;
+  mark: number | null;
+  volume: number;
+  open_interest: number;
+  implied_volatility: number | null;
+  delta: number | null;
+  gamma: number | null;
+  theta: number | null;
+  vega: number | null;
+  rho: number | null;
+  in_the_money: boolean;
+  intrinsic_value: number;
+  extrinsic_value: number;
+  moneyness: "ITM" | "ATM" | "OTM";
+  days_to_expiration: number | null;
+  percent_change: number | null;
+}
+
+export interface OptionsChain {
+  ticker: string;
+  spot_price: number;
+  expiration: string;
+  calls: OptionContract[];
+  puts: OptionContract[];
+  total_call_volume: number;
+  total_put_volume: number;
+  total_call_oi: number;
+  total_put_oi: number;
+  put_call_volume_ratio: number | null;
+  put_call_oi_ratio: number | null;
+  timestamp: string;
+}
+
+export interface OptionsAnalytics {
+  ticker: string;
+  spot_price: number;
+  iv_rank: number | null;
+  iv_percentile: number | null;
+  current_iv: number | null;
+  hv_30day: number | null;
+  put_call_ratio: number | null;
+  max_pain: number | null;
+  gamma_exposure: number | null;
+  nearest_expiration: string | null;
+  days_to_expiration: number | null;
+  timestamp: string;
+}
+
+export interface ExpirationDate {
+  date: string;
+  days_until: number;
+  is_weekly: boolean;
+  is_monthly: boolean;
+  is_quarterly: boolean;
+}

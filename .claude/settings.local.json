@@ -50,7 +50,10 @@
       "Bash(fi)",
       "Bash(done)",
       "Bash(brew search:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(for file in engines/backtest/strategies/*.py)",
+      "Bash(do echo \"Checking $file...\")",
+      "Bash(git reset:*)"
     ]
   }
 }
