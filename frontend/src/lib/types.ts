@@ -474,3 +474,33 @@ export interface ExpirationDate {
   is_monthly: boolean;
   is_quarterly: boolean;
 }
+
+export interface SpreadLeg {
+  strike: number;
+  contract_type: "call" | "put";
+  action: "buy" | "sell";
+  quantity: number;
+  price: number;
+  expiration: string;
+  delta: number | null;
+}
+
+export interface SpreadAnalysis {
+  spread_type: string;
+  ticker: string;
+  spot_price: number;
+  legs: SpreadLeg[];
+  max_profit: number;
+  max_loss: number;
+  breakeven_points: number[];
+  net_debit_credit: number;
+  net_delta: number | null;
+  net_gamma: number | null;
+  net_theta: number | null;
+  net_vega: number | null;
+  risk_reward_ratio: number | null;
+  probability_of_profit: number | null;
+  price_points: number[];
+  pnl_at_expiration: number[];
+  timestamp: string;
+}
