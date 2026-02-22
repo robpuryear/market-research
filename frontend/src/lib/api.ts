@@ -20,6 +20,9 @@ import type {
   EarningsCalendarEntry,
   ScanCandidate,
   CompositeSentiment,
+  BacktestConfig,
+  BacktestResult,
+  StrategyInfo,
 } from "./types";
 
 // OptionsGreeks type (from backend model)
@@ -170,3 +173,14 @@ export const fetchMarketScan = (params?: {
 
 export const fetchCompositeSentiment = (ticker: string) =>
   apiFetch<CompositeSentiment>(`/api/analytics/composite-sentiment/${ticker}`);
+
+// Backtest API
+export const fetchBacktestStrategies = () =>
+  apiFetch<{ strategies: StrategyInfo[] }>('/api/backtest/strategies');
+
+export const runBacktest = (config: BacktestConfig) =>
+  apiFetch<BacktestResult>('/api/backtest/run', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config),
+  });

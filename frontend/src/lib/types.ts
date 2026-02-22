@@ -328,3 +328,84 @@ export interface CompositeSentiment {
   components: SentimentComponent[];
   timestamp: string;
 }
+
+// Backtesting Types
+
+export interface BacktestConfig {
+  strategy_type: string;
+  ticker: string;
+  start_date: string;
+  end_date: string;
+  initial_capital: number;
+  position_size: number;
+  commission: number;
+  slippage: number;
+  rsi_period?: number;
+  rsi_oversold?: number;
+  rsi_overbought?: number;
+  stop_loss?: number | null;
+  take_profit?: number | null;
+  // Strategy-specific parameters
+  bb_mode?: string;
+  roc_entry?: number;
+  roc_exit?: number;
+  roc_period?: number;
+  signal_entry_threshold?: number;
+  signal_exit_threshold?: number;
+}
+
+export interface Trade {
+  entry_date: string;
+  exit_date: string | null;
+  entry_price: number;
+  exit_price: number | null;
+  shares: number;
+  pnl: number;
+  return_pct: number;
+  hold_days: number;
+  entry_reason: string;
+  exit_reason: string | null;
+  commission_paid: number;
+}
+
+export interface BacktestResult {
+  config: BacktestConfig;
+  trades: Trade[];
+  final_value: number;
+  total_return: number;
+  annual_return: number;
+  sharpe_ratio: number;
+  max_drawdown: number;
+  volatility: number;
+  total_trades: number;
+  winning_trades: number;
+  losing_trades: number;
+  win_rate: number;
+  avg_win: number;
+  avg_loss: number;
+  avg_win_loss_ratio: number;
+  profit_factor: number;
+  equity_curve: number[];
+  dates: string[];
+  drawdown_curve: number[];
+  benchmark_return: number;
+  alpha: number;
+  start_date: string;
+  end_date: string;
+  total_days: number;
+  timestamp: string;
+}
+
+export interface StrategyInfo {
+  name: string;
+  display_name: string;
+  description: string;
+  parameters: StrategyParameter[];
+}
+
+export interface StrategyParameter {
+  name: string;
+  type: string;
+  default: string | number;
+  description: string;
+}
