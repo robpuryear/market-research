@@ -118,6 +118,68 @@ async def _evaluate_alerts():
         logger.error(f"Scheduler: alert evaluation failed: {e}")
 
 
+async def _run_enabled_strategies():
+    """Run all enabled strategies"""
+    try:
+        from engines.strategy import strategy_manager, strategy_evaluator
+        from engines.alerts import alert_manager
+        from core import watchlist as watchlist_module, stock_universe
+
+        strategies = strategy_manager.get_all_strategies()
+        enabled_strategies = [s for s in strategies if s.enabled]
+
+        if not enabled_strategies:
+            return
+
+        logger.info(f"Running {len(enabled_strategies)} enabled strategies")
+
+        for strategy in enabled_strategies:
+            try:
+                # Get tickers based on scope
+                if strategy.scope == "watchlist":
+                    tickers = [item["ticker"] for item in watchlist_module.get_all()]
+                else:  # market
+                    tickers = stock_universe.get_all_tickers()
+
+                if not tickers:
+                    continue
+
+                # Run strategy scan
+                results = await strategy_evaluator.run_strategy_scan(strategy, tickers)
+
+                # Generate alerts if configured
+                if strategy.generate_alerts and results:
+                    for result in results:
+                        try:
+                            alert_data = {
+                                "ticker": result.ticker,
+                                "alert_type": "signal",
+                                "condition": {
+                                    "signal_type": "strategy",
+                                    "operator": "fired",
+                                    "threshold": None,
+                                    "direction": None
+                                },
+                                "message": f"Strategy '{strategy.name}' matched (signal strength: {result.signal_strength})"
+                            }
+                            alert_manager.create_alert(alert_data)
+                        except Exception as e:
+                            logger.error(f"Failed to create alert for {result.ticker}: {e}")
+
+                logger.info(f"Strategy '{strategy.name}' completed: {len(results)} matches")
+
+            except Exception as e:
+                logger.error(f"Failed to run strategy '{strategy.name}': {e}")
+
+        # Reset daily hit counters at midnight
+        now = datetime.now(timezone.utc)
+        if now.hour == 0 and now.minute < 15:  # Reset in first 15 min of day
+            strategy_manager.reset_daily_hits()
+
+    except Exception as e:
+        logger.error(f"Scheduler: strategy execution failed: {e}")
+
+
 def setup_scheduler():
     """Register all scheduled jobs."""
     # Market snapshot: every 5 min
@@ -214,6 +276,15 @@ def setup_scheduler():
         IntervalTrigger(minutes=5),
         id="alert_evaluation",
         name="Alert Evaluation",
+        replace_existing=True,
+    )
+
+    # Strategy execution: every 15 minutes during market hours
+    scheduler.add_job(
+        _run_enabled_strategies,
+        IntervalTrigger(minutes=15),
+        id="strategy_execution",
+        name="Strategy Execution",
         replace_existing=True,
     )
 

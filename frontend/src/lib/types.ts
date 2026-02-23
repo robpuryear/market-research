@@ -613,3 +613,52 @@ export interface PortfolioMetrics {
   sectors: Record<string, number>;
   timestamp: string;
 }
+
+// Strategy Types
+
+export interface IndicatorCondition {
+  indicator: "rsi" | "macd" | "ma" | "bb" | "volume" | "price";
+  operator: "above" | "below" | "crosses_above" | "crosses_below" | "between";
+  value?: number;
+  value_high?: number;
+  period?: number;
+}
+
+export interface PricePatternCondition {
+  pattern: "golden_cross" | "death_cross" | "macd_cross" | "bb_squeeze";
+  direction?: "bullish" | "bearish";
+}
+
+export type Condition = IndicatorCondition | PricePatternCondition;
+
+export interface ConditionGroup {
+  logic: "AND" | "OR";
+  conditions: Condition[];
+}
+
+export interface Strategy {
+  id: string;
+  name: string;
+  description: string | null;
+  entry_conditions: ConditionGroup;
+  exit_conditions: ConditionGroup | null;
+  enabled: boolean;
+  scope: "watchlist" | "market";
+  generate_alerts: boolean;
+  created_at: string;
+  last_run: string | null;
+  hits_today: number;
+  total_hits: number;
+}
+
+export interface StrategyResult {
+  id: string;
+  strategy_id: string;
+  ticker: string;
+  matched_at: string;
+  entry_conditions_met: boolean;
+  exit_conditions_met: boolean;
+  current_price: number;
+  indicator_values: Record<string, number>;
+  signal_strength: number;
+}

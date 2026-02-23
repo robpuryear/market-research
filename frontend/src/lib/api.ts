@@ -36,6 +36,9 @@ import type {
   Position,
   Transaction,
   PortfolioMetrics,
+  Strategy,
+  StrategyResult,
+  ConditionGroup,
 } from "./types";
 
 // OptionsGreeks type (from backend model)
@@ -277,3 +280,43 @@ export const fetchPortfolioMetrics = (cash = 0) =>
 
 export const fetchTransactions = (positionId?: string) =>
   apiFetch<Transaction[]>(`/api/portfolio/transactions${positionId ? `?position_id=${positionId}` : ""}`);
+
+// --- Strategies --------------------------------------------------------------
+
+export const fetchStrategies = () =>
+  apiFetch<Strategy[]>("/api/strategies");
+
+export const fetchStrategy = (strategyId: string) =>
+  apiFetch<Strategy>(`/api/strategies/${strategyId}`);
+
+export const createStrategy = (strategy: {
+  name: string;
+  description?: string;
+  entry_conditions: ConditionGroup;
+  exit_conditions?: ConditionGroup;
+  enabled?: boolean;
+  scope?: "watchlist" | "market";
+  generate_alerts?: boolean;
+}) =>
+  apiFetch<Strategy>("/api/strategies", {
+    method: "POST",
+    body: JSON.stringify(strategy),
+  });
+
+export const updateStrategy = (strategyId: string, updates: Partial<Strategy>) =>
+  apiFetch<Strategy>(`/api/strategies/${strategyId}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+
+export const deleteStrategy = (strategyId: string) =>
+  apiFetch(`/api/strategies/${strategyId}`, { method: "DELETE" });
+
+export const runStrategy = (strategyId: string) =>
+  apiFetch<StrategyResult[]>(`/api/strategies/${strategyId}/run`, { method: "POST" });
+
+export const fetchStrategyResults = (strategyId: string, limit = 100) =>
+  apiFetch<StrategyResult[]>(`/api/strategies/${strategyId}/results?limit=${limit}`);
+
+export const fetchRecentStrategyResults = (limit = 50) =>
+  apiFetch<StrategyResult[]>(`/api/strategies/results/recent?limit=${limit}`);
