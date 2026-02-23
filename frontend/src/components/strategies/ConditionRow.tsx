@@ -16,12 +16,12 @@ export function ConditionRow({ condition, onChange, onRemove, showRemove }: Cond
   const indicatorCond = isIndicator ? (condition as IndicatorCondition) : null;
   const patternCond = !isIndicator ? (condition as PricePatternCondition) : null;
 
-  const handleIndicatorChange = (field: keyof IndicatorCondition, value: any) => {
+  const handleIndicatorChange = (field: keyof IndicatorCondition, value: string | number | undefined) => {
     if (!indicatorCond) return;
     onChange({ ...indicatorCond, [field]: value });
   };
 
-  const handlePatternChange = (field: keyof PricePatternCondition, value: any) => {
+  const handlePatternChange = (field: keyof PricePatternCondition, value: string | undefined) => {
     if (!patternCond) return;
     onChange({ ...patternCond, [field]: value });
   };
