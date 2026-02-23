@@ -123,7 +123,7 @@ async def _run_enabled_strategies():
     try:
         from engines.strategy import strategy_manager, strategy_evaluator
         from engines.alerts import alert_manager
-        from core import watchlist as watchlist_module, stock_universe
+        from core import watchlist_manager, stock_universe
 
         strategies = strategy_manager.get_all_strategies()
         enabled_strategies = [s for s in strategies if s.enabled]
@@ -137,7 +137,7 @@ async def _run_enabled_strategies():
             try:
                 # Get tickers based on scope
                 if strategy.scope == "watchlist":
-                    tickers = [item["ticker"] for item in watchlist_module.get_all()]
+                    tickers = [item["ticker"] for item in watchlist_manager.get_all()]
                 else:  # market
                     tickers = stock_universe.get_all_tickers()
 

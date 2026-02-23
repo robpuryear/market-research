@@ -10,7 +10,7 @@ from typing import List, Optional
 from models.strategy import Strategy, StrategyResult, ConditionGroup
 from engines.strategy import strategy_manager, strategy_evaluator
 from engines.alerts import alert_manager
-from core import watchlist as watchlist_module, stock_universe
+from core import watchlist_manager, stock_universe
 import logging
 
 logger = logging.getLogger(__name__)
@@ -117,7 +117,7 @@ async def run_strategy(strategy_id: str):
 
         # Get tickers based on scope
         if strategy.scope == "watchlist":
-            tickers = [item["ticker"] for item in watchlist_module.get_all()]
+            tickers = [item["ticker"] for item in watchlist_manager.get_all()]
         else:  # market
             tickers = stock_universe.get_all_tickers()
 
