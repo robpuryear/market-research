@@ -312,6 +312,19 @@ export interface ScanCandidate {
   timestamp: string;
 }
 
+export interface TrendingStock {
+  ticker: string;
+  company_name: string;
+  price: number;
+  change_pct: number;
+  volume_ratio: number;
+  reddit_mentions: number;
+  reddit_sentiment: number;  // -1.0 to +1.0
+  momentum_score: number;    // 0–100
+  on_watchlist: boolean;
+  timestamp: string;
+}
+
 export interface SentimentComponent {
   name: string;
   score: number;  // -1.0 to +1.0

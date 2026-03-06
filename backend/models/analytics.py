@@ -57,6 +57,20 @@ class ScanCandidate(BaseModel):
     timestamp: datetime
 
 
+class TrendingStock(BaseModel):
+    """A stock gaining social + technical momentum."""
+    ticker: str
+    company_name: str
+    price: float
+    change_pct: float
+    volume_ratio: float
+    reddit_mentions: int
+    reddit_sentiment: float   # -1.0 to +1.0
+    momentum_score: float     # 0–100
+    on_watchlist: bool
+    timestamp: datetime
+
+
 class SentimentComponent(BaseModel):
     """Individual component of composite sentiment"""
     name: str

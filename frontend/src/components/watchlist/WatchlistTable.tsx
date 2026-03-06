@@ -1,17 +1,35 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ChangeText } from "@/components/ui/Badge";
 import { useRouter } from "next/navigation";
-import type { StockData } from "@/lib/types";
+import type { StockData, CompositeSentiment } from "@/lib/types";
 import { clsx } from "clsx";
-import { removeFromWatchlist } from "@/lib/api";
+import { removeFromWatchlist, fetchCompositeSentiment } from "@/lib/api";
 import { mutate } from "swr";
 import { InfoIcon } from "@/components/ui/Tooltip";
 import { TOOLTIPS } from "@/lib/tooltips";
 
 type SortKey = keyof StockData;
+
+function SentimentBadge({ sentiment }: { sentiment?: CompositeSentiment }) {
+  if (!sentiment) return <span className="text-gray-400 text-xs">…</span>;
+  const score = sentiment.composite_score;
+  const label = sentiment.composite_label;
+  const colorClass =
+    score >= 60 ? "text-emerald-600" :
+    score >= 20 ? "text-green-500" :
+    score <= -60 ? "text-red-600" :
+    score <= -20 ? "text-red-400" :
+    "text-gray-500";
+  return (
+    <span className={clsx("font-semibold", colorClass)} title={label}>
+      {score > 0 ? "+" : ""}{score.toFixed(0)}
+      <span className="font-normal text-gray-400 ml-1 text-xs">{label.replace("Very ", "V.")}</span>
+    </span>
+  );
+}
 
 export function WatchlistTable({ compact = false }: { compact?: boolean }) {
   const { data, isLoading, error } = useWatchlist();
@@ -20,6 +38,18 @@ export function WatchlistTable({ compact = false }: { compact?: boolean }) {
   const [sortAsc, setSortAsc] = useState(false);
   const [filter, setFilter] = useState("");
   const [removingTicker, setRemovingTicker] = useState<string | null>(null);
+  const [sentiments, setSentiments] = useState<Record<string, CompositeSentiment>>({});
+
+  useEffect(() => {
+    if (!data) return;
+    data.forEach((s) => {
+      if (sentiments[s.ticker]) return;
+      fetchCompositeSentiment(s.ticker)
+        .then((r) => setSentiments((prev) => ({ ...prev, [s.ticker]: r })))
+        .catch(() => {/* silently skip */});
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) setSortAsc(!sortAsc);
@@ -100,6 +130,7 @@ export function WatchlistTable({ compact = false }: { compact?: boolean }) {
                   Options <InfoIcon tooltip={TOOLTIPS.unusualOptions} />
                 </span>
               </th>
+              <th className="text-left py-2 px-3 text-gray-500 text-xs uppercase tracking-wider">Sentiment</th>
               {!compact && <th className="text-center py-2 px-3 text-gray-500 text-xs">Remove</th>}
             </tr>
           </thead>
@@ -136,6 +167,9 @@ export function WatchlistTable({ compact = false }: { compact?: boolean }) {
                   {s.options_unusual ? (
                     <span className="text-amber-600">● Unusual</span>
                   ) : <span className="text-gray-500">—</span>}
+                </td>
+                <td className="py-2 px-3">
+                  <SentimentBadge sentiment={sentiments[s.ticker]} />
                 </td>
                 {!compact && (
                   <td className="py-2 px-3 text-center">

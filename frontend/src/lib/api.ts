@@ -41,6 +41,7 @@ import type {
   Strategy,
   StrategyResult,
   ConditionGroup,
+  TrendingStock,
 } from "./types";
 
 // OptionsGreeks type (from backend model)
@@ -198,6 +199,9 @@ export const fetchMarketScan = (params?: {
 
 export const fetchCompositeSentiment = (ticker: string) =>
   apiFetch<CompositeSentiment>(`/api/analytics/composite-sentiment/${ticker}`);
+
+export const fetchTrending = (topN = 15) =>
+  apiFetch<TrendingStock[]>(`/api/analytics/trending?top_n=${topN}`);
 
 // Backtest API
 export const fetchBacktestStrategies = () =>

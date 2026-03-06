@@ -1,6 +1,7 @@
 import { WatchlistTable } from "@/components/watchlist/WatchlistTable";
 import { EarningsCalendar } from "@/components/watchlist/EarningsCalendar";
 import { AddTickerForm } from "@/components/watchlist/AddTickerForm";
+import { TrendingStocks } from "@/components/watchlist/TrendingStocks";
 
 export default function WatchlistPage() {
   return (
@@ -14,6 +15,7 @@ export default function WatchlistPage() {
       <div className="bg-white border border-gray-300 rounded-lg p-4">
         <WatchlistTable />
       </div>
+      <TrendingStocks />
     </div>
   );
 }

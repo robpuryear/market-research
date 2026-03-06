@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
-from engines.analytics import ml_signals, correlation, short_squeeze, market_scanner, composite_sentiment
-from models.analytics import MLSignalsData, MLSignal, SqueezeScore, CorrelationMatrix, ScanCandidate, CompositeSentiment
+from engines.analytics import ml_signals, correlation, short_squeeze, market_scanner, composite_sentiment, trending
+from models.analytics import MLSignalsData, MLSignal, SqueezeScore, CorrelationMatrix, ScanCandidate, CompositeSentiment, TrendingStock
 from datetime import datetime, timezone
 from typing import List
 
@@ -129,6 +129,20 @@ async def scan_market(
             top_n=top_n,
         )
         return candidates
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/trending", response_model=List[TrendingStock])
+async def get_trending(top_n: int = Query(15, ge=5, le=30)):
+    """
+    Get trending stocks gaining social + technical momentum.
+
+    Combines Reddit mention velocity (wallstreetbets, stocks, investing),
+    volume spikes, and price momentum into a 0–100 momentum score.
+    """
+    try:
+        return await trending.get_trending(top_n=top_n)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
