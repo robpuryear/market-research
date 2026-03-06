@@ -293,7 +293,7 @@ export const fetchTransactions = (positionId?: string) =>
 // --- Strategies --------------------------------------------------------------
 
 export const fetchStrategies = () =>
-  apiFetch<Strategy[]>("/api/strategies");
+  apiFetch<Strategy[]>("/api/strategies/");
 
 export const fetchStrategy = (strategyId: string) =>
   apiFetch<Strategy>(`/api/strategies/${strategyId}`);
@@ -307,7 +307,7 @@ export const createStrategy = (strategy: {
   scope?: "watchlist" | "market";
   generate_alerts?: boolean;
 }) =>
-  apiFetch<Strategy>("/api/strategies", {
+  apiFetch<Strategy>("/api/strategies/", {
     method: "POST",
     body: JSON.stringify(strategy),
   });

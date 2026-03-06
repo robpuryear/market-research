@@ -124,6 +124,18 @@ async def run_strategy(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/results/recent", response_model=List[StrategyResult])
+async def get_recent_results(
+    limit: int = 50,
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        return await strategy_manager.get_recent_results(session, limit)
+    except Exception as e:
+        logger.error(f"Failed to get recent results: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/{strategy_id}/results", response_model=List[StrategyResult])
 async def get_strategy_results(
     strategy_id: str,
@@ -139,18 +151,6 @@ async def get_strategy_results(
         raise
     except Exception as e:
         logger.error(f"Failed to get results for strategy {strategy_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/results/recent", response_model=List[StrategyResult])
-async def get_recent_results(
-    limit: int = 50,
-    session: AsyncSession = Depends(get_session),
-):
-    try:
-        return await strategy_manager.get_recent_results(session, limit)
-    except Exception as e:
-        logger.error(f"Failed to get recent results: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
