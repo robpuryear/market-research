@@ -64,8 +64,13 @@ class TrendingStock(BaseModel):
     price: float
     change_pct: float
     volume_ratio: float
+    # Per-source signals
     reddit_mentions: int
     reddit_sentiment: float   # -1.0 to +1.0
+    news_mentions: int        # Alpha Vantage financial news article count
+    stocktwits_trending: bool # in StockTwits trending list
+    yahoo_trending: bool      # in Yahoo Finance trending list
+    buzz_sources: List[str]   # which sources picked this up, e.g. ["Reddit","News","StockTwits"]
     momentum_score: float     # 0–100
     on_watchlist: bool
     timestamp: datetime

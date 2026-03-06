@@ -319,8 +319,12 @@ export interface TrendingStock {
   change_pct: number;
   volume_ratio: number;
   reddit_mentions: number;
-  reddit_sentiment: number;  // -1.0 to +1.0
-  momentum_score: number;    // 0–100
+  reddit_sentiment: number;   // -1.0 to +1.0
+  news_mentions: number;
+  stocktwits_trending: boolean;
+  yahoo_trending: boolean;
+  buzz_sources: string[];     // e.g. ["Reddit", "News", "StockTwits", "Yahoo"]
+  momentum_score: number;     // 0–100
   on_watchlist: boolean;
   timestamp: string;
 }
