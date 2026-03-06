@@ -4,8 +4,7 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Dict
 import logging
 
-from core import cache, rate_limiter
-from config import settings
+from core import cache, rate_limiter, watchlist_manager
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ async def get_earnings_calendar() -> List[Dict]:
     if cached:
         return cached
 
-    tickers = settings.tickers_list
+    tickers = watchlist_manager.get_tickers()
     now = datetime.now(timezone.utc).date()
     cutoff = now + timedelta(days=60)
     results = []

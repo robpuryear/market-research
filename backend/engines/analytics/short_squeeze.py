@@ -4,8 +4,7 @@ from datetime import datetime, timezone
 from typing import List, Dict
 import logging
 
-from core import cache, rate_limiter
-from config import settings
+from core import cache, rate_limiter, watchlist_manager
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +43,7 @@ async def score_all() -> List[Dict]:
     if cached:
         return cached
 
-    tickers = settings.tickers_list
+    tickers = watchlist_manager.get_tickers()
     results = []
 
     for ticker in tickers:
