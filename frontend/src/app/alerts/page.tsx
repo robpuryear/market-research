@@ -6,6 +6,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { AlertList } from "@/components/alerts/AlertList";
 import { CreateAlertModal } from "@/components/alerts/CreateAlertModal";
 import { NotificationBanner } from "@/components/alerts/NotificationBanner";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import type { PriceCondition, SignalCondition, EarningsCondition } from "@/lib/types";
 
 export default function AlertsPage() {
@@ -110,9 +111,7 @@ export default function AlertsPage() {
 
         {/* Alerts List */}
         {isLoading ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <div className="text-gray-600">Loading alerts...</div>
-          </div>
+          <LoadingSpinner />
         ) : (
           <AlertList
             alerts={alerts || []}

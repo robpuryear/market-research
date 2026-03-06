@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { fetchOptionsChain, fetchOptionsExpirations, fetchOptionsAnalytics } from "@/lib/api";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import type { OptionsChain, ExpirationDate, OptionsAnalytics } from "@/lib/types";
 
 export default function OptionsPage() {
@@ -134,11 +135,7 @@ export default function OptionsPage() {
         )}
 
         {/* Options Chain */}
-        {chainLoading && (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <div className="text-gray-600">Loading options chain...</div>
-          </div>
-        )}
+        {chainLoading && <LoadingSpinner />}
 
         {chain && (
           <div className="bg-white rounded-lg shadow overflow-hidden">

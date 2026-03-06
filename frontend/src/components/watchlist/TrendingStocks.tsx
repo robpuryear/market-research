@@ -6,31 +6,15 @@ import { ChangeText } from "@/components/ui/Badge";
 import { clsx } from "clsx";
 import { mutate } from "swr";
 
-const SOURCE_COLORS: Record<string, string> = {
-  Reddit:     "bg-orange-100 text-orange-700",
-  News:       "bg-blue-100 text-blue-700",
-  StockTwits: "bg-purple-100 text-purple-700",
-  Yahoo:      "bg-violet-100 text-violet-700",
-};
-
-function MomentumBar({ score, sources }: { score: number; sources: string[] }) {
+function MomentumBar({ score }: { score: number }) {
   const pct = Math.min(score, 100);
   const color = score >= 70 ? "bg-emerald-500" : score >= 45 ? "bg-amber-500" : "bg-blue-400";
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-2">
-        <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-          <div className={clsx("h-full rounded-full", color)} style={{ width: `${pct}%` }} />
-        </div>
-        <span className="text-xs font-semibold text-gray-700">{score.toFixed(0)}</span>
+    <div className="flex items-center gap-2">
+      <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+        <div className={clsx("h-full rounded-full", color)} style={{ width: `${pct}%` }} />
       </div>
-      <div className="flex flex-wrap gap-0.5">
-        {sources.map((s) => (
-          <span key={s} className={clsx("px-1 py-px rounded text-xs", SOURCE_COLORS[s] ?? "bg-gray-100 text-gray-600")}>
-            {s}
-          </span>
-        ))}
-      </div>
+      <span className="text-xs font-semibold text-gray-700">{score.toFixed(0)}</span>
     </div>
   );
 }
@@ -109,7 +93,7 @@ export function TrendingStocks() {
                   {s.volume_ratio.toFixed(1)}x
                 </td>
                 <td className="py-2 px-3">
-                  <MomentumBar score={s.momentum_score} sources={s.buzz_sources} />
+                  <MomentumBar score={s.momentum_score} />
                 </td>
                 <td className="py-2 px-3 text-right">
                   {s.on_watchlist ? (

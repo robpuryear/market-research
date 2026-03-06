@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useStrategy, useStrategyResults } from "@/hooks/useStrategies";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function StrategyResultsPage() {
   const params = useParams();
@@ -17,14 +18,7 @@ export default function StrategyResultsPage() {
   };
 
   if (strategyLoading || resultsLoading) {
-    return (
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <p className="text-gray-600 mt-2">Loading results...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (!strategy) {
