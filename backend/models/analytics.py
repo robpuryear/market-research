@@ -68,9 +68,9 @@ class TrendingStock(BaseModel):
     reddit_mentions: int
     reddit_sentiment: float   # -1.0 to +1.0
     news_mentions: int        # Alpha Vantage financial news article count
-    stocktwits_trending: bool # in StockTwits trending list
+    finviz_mentions: int      # Finviz news headline mention count
     yahoo_trending: bool      # in Yahoo Finance trending list
-    buzz_sources: List[str]   # which sources picked this up, e.g. ["Reddit","News","StockTwits"]
+    buzz_sources: List[str]   # which sources picked this up, e.g. ["Reddit","Finviz","Yahoo"]
     momentum_score: float     # 0–100
     on_watchlist: bool
     timestamp: datetime

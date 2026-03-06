@@ -2,17 +2,18 @@
 Trending & Momentum Engine
 
 Aggregates social buzz from 4 sources, then enriches with price/volume data:
-  1. Reddit   — r/wallstreetbets, r/stocks, r/investing (mention count + sentiment)
+  1. Reddit      — r/wallstreetbets, r/stocks, r/investing (mention count + sentiment)
   2. Alpha Vantage News — financial news articles mentioning each ticker
-  3. StockTwits Trending — official trending symbols list (no auth needed)
+  3. Finviz News  — ticker mentions scraped from finviz.com/news headlines
   4. Yahoo Finance Trending — Yahoo's US trending tickers (no auth needed)
 
 Momentum score (0–100):
-  Social (60 pts max): Reddit 25 + AV News 15 + StockTwits 12 + Yahoo 8
+  Social (60 pts max): Reddit 25 + AV News 15 + Finviz 12 + Yahoo 8
   Technical (40 pts max): Volume spike 25 + Price momentum 15
 """
 import asyncio
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -38,7 +39,16 @@ _BLACKLIST = {
     "AI", "ML", "PE", "PO", "VC", "US", "UK",
 }
 
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; market-research/1.0)"}
+# Browser-like headers — required for Finviz; also helps with Yahoo
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -99,21 +109,27 @@ async def _fetch_av_news_buzz() -> Dict[str, int]:
         return {}
 
 
-async def _fetch_stocktwits_trending() -> Set[str]:
-    """Returns set of tickers currently trending on StockTwits."""
+async def _fetch_finviz_news_buzz() -> Dict[str, int]:
+    """
+    Returns {ticker: mention_count} by scraping Finviz news headlines.
+    Tickers appear as links in the form: quote.ashx?t=TICKER
+    No API key required; works from cloud IPs.
+    """
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(
-                "https://api.stocktwits.com/api/2/trending/symbols.json",
-                headers=HEADERS,
-            )
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            resp = await client.get("https://finviz.com/news.ashx", headers=HEADERS)
             resp.raise_for_status()
-            data = resp.json()
-        symbols = data.get("symbols", [])
-        return {s["symbol"].upper() for s in symbols if s.get("symbol")}
+
+        tickers = re.findall(r'quote\.ashx\?t=([A-Z]{1,5})', resp.text)
+        counts: Dict[str, int] = {}
+        for t in tickers:
+            if t not in _BLACKLIST and 2 <= len(t) <= 5:
+                counts[t] = counts.get(t, 0) + 1
+        logger.info(f"Finviz news: found {len(counts)} tickers")
+        return counts
     except Exception as e:
-        logger.warning(f"StockTwits trending fetch failed: {e}")
-        return set()
+        logger.warning(f"Finviz news fetch failed: {e}")
+        return {}
 
 
 async def _fetch_yahoo_trending() -> Set[str]:
@@ -133,11 +149,10 @@ async def _fetch_yahoo_trending() -> Set[str]:
         return set()
 
 
-async def _fetch_price(ticker: str) -> Optional[dict]:
+def _fetch_price_sync(ticker: str) -> Optional[dict]:
+    """Synchronous yfinance price fetch — run via asyncio.to_thread."""
     try:
-        rate_limiter.acquire("yfinance")
-        tk = yf.Ticker(ticker)
-        info = tk.info or {}
+        info = yf.Ticker(ticker).info or {}
         price = info.get("currentPrice") or info.get("regularMarketPrice")
         if not price or price <= 0:
             return None
@@ -157,6 +172,12 @@ async def _fetch_price(ticker: str) -> Optional[dict]:
         return None
 
 
+async def _fetch_price(ticker: str) -> Optional[dict]:
+    """Non-blocking price fetch via thread pool."""
+    rate_limiter.acquire("yfinance")
+    return await asyncio.to_thread(_fetch_price_sync, ticker)
+
+
 # ---------------------------------------------------------------------------
 # Score calculation
 # ---------------------------------------------------------------------------
@@ -164,20 +185,20 @@ async def _fetch_price(ticker: str) -> Optional[dict]:
 def _momentum_score(
     reddit_mentions: int,
     news_mentions: int,
-    stocktwits_trending: bool,
+    finviz_mentions: int,
     yahoo_trending: bool,
     volume_ratio: float,
     change_pct: float,
 ) -> float:
     """
     0–100 momentum score.
-    Social (60 pts max):  Reddit 25 + AV News 15 + StockTwits 12 + Yahoo 8
+    Social (60 pts max):  Reddit 25 + AV News 15 + Finviz 12 + Yahoo 8
     Technical (40 pts max): Volume spike 25 + Price momentum 15
     """
     social = (
         min(reddit_mentions * 8, 25)
         + min(news_mentions * 5, 15)
-        + (12 if stocktwits_trending else 0)
+        + min(finviz_mentions * 3, 12)
         + (8 if yahoo_trending else 0)
     )
     technical = (
@@ -198,10 +219,10 @@ async def get_trending(top_n: int = 15) -> List[TrendingStock]:
         return [TrendingStock(**s) for s in cached]
 
     # Fetch all 4 social sources in parallel
-    reddit_buzz, av_news, st_trending, yf_trending = await asyncio.gather(
+    reddit_buzz, av_news, finviz_news, yf_trending = await asyncio.gather(
         _fetch_reddit_buzz(),
         _fetch_av_news_buzz(),
-        _fetch_stocktwits_trending(),
+        _fetch_finviz_news_buzz(),
         _fetch_yahoo_trending(),
     )
 
@@ -209,7 +230,7 @@ async def get_trending(top_n: int = 15) -> List[TrendingStock]:
     all_tickers: Set[str] = (
         set(reddit_buzz.keys())
         | set(av_news.keys())
-        | st_trending
+        | set(finviz_news.keys())
         | yf_trending
     )
     all_tickers = {t for t in all_tickers if t not in _BLACKLIST and 2 <= len(t) <= 5}
@@ -218,9 +239,9 @@ async def get_trending(top_n: int = 15) -> List[TrendingStock]:
     def _pre_score(ticker: str) -> float:
         rd = reddit_buzz.get(ticker, {}).get("mentions", 0)
         nw = av_news.get(ticker, 0)
-        st = ticker in st_trending
+        fv = finviz_news.get(ticker, 0)
         yh = ticker in yf_trending
-        return min(rd * 8, 25) + min(nw * 5, 15) + (12 if st else 0) + (8 if yh else 0)
+        return min(rd * 8, 25) + min(nw * 5, 15) + min(fv * 3, 12) + (8 if yh else 0)
 
     candidates = sorted(all_tickers, key=_pre_score, reverse=True)[:top_n * 2]
 
@@ -229,8 +250,8 @@ async def get_trending(top_n: int = 15) -> List[TrendingStock]:
 
     watchlist_tickers = set(watchlist_manager.get_tickers())
 
-    # Fetch price data with bounded concurrency
-    semaphore = asyncio.Semaphore(5)
+    # Fetch price data — run in thread pool to avoid blocking the event loop
+    semaphore = asyncio.Semaphore(8)
 
     async def fetch_with_sem(ticker: str) -> Tuple[str, Optional[dict]]:
         async with semaphore:
@@ -247,7 +268,7 @@ async def get_trending(top_n: int = 15) -> List[TrendingStock]:
         reddit_mentions = rd.get("mentions", 0)
         reddit_sentiment = rd.get("sentiment", 0.0)
         news_mentions = av_news.get(ticker, 0)
-        st = ticker in st_trending
+        fv_mentions = finviz_news.get(ticker, 0)
         yh = ticker in yf_trending
 
         sources = []
@@ -255,13 +276,13 @@ async def get_trending(top_n: int = 15) -> List[TrendingStock]:
             sources.append("Reddit")
         if news_mentions > 0:
             sources.append("News")
-        if st:
-            sources.append("StockTwits")
+        if fv_mentions > 0:
+            sources.append("Finviz")
         if yh:
             sources.append("Yahoo")
 
         score = _momentum_score(
-            reddit_mentions, news_mentions, st, yh,
+            reddit_mentions, news_mentions, fv_mentions, yh,
             price_data["volume_ratio"], price_data["change_pct"],
         )
 
@@ -274,7 +295,7 @@ async def get_trending(top_n: int = 15) -> List[TrendingStock]:
             reddit_mentions=reddit_mentions,
             reddit_sentiment=round(reddit_sentiment, 3),
             news_mentions=news_mentions,
-            stocktwits_trending=st,
+            finviz_mentions=fv_mentions,
             yahoo_trending=yh,
             buzz_sources=sources,
             momentum_score=score,
