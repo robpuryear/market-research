@@ -1,12 +1,14 @@
 import asyncio
 from typing import List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 import yfinance as yf
 
 from engines.watchlist import price_data, fundamentals, options_flow, earnings_calendar
 from models.analytics import EarningsCalendarEntry
 from core import watchlist_manager, cache
+from db.session import get_session
 
 router = APIRouter(prefix="/api/watchlist", tags=["watchlist"])
 
@@ -50,14 +52,14 @@ async def get_stock_detail(ticker: str):
 
 
 @router.post("/add")
-async def add_to_watchlist(request: AddTickerRequest):
-    """Add a ticker to the watchlist after validating it exists."""
+async def add_to_watchlist(
+    request: AddTickerRequest,
+    session: AsyncSession = Depends(get_session),
+):
     ticker = request.ticker.strip().upper()
-
     if not ticker:
         raise HTTPException(status_code=400, detail="Ticker cannot be empty")
 
-    # Validate ticker exists using yfinance
     try:
         tk = yf.Ticker(ticker)
         info = tk.info
@@ -66,9 +68,7 @@ async def add_to_watchlist(request: AddTickerRequest):
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Unable to validate ticker '{ticker}': {str(e)}")
 
-    # Add to watchlist
-    if watchlist_manager.add_ticker(ticker):
-        # Invalidate watchlist cache so it refreshes
+    if await watchlist_manager.add_ticker(session, ticker):
         cache.invalidate("watchlist_bulk")
         return {"status": "added", "ticker": ticker}
     else:
@@ -76,12 +76,12 @@ async def add_to_watchlist(request: AddTickerRequest):
 
 
 @router.delete("/remove/{ticker}")
-async def remove_from_watchlist(ticker: str):
-    """Remove a ticker from the watchlist."""
+async def remove_from_watchlist(
+    ticker: str,
+    session: AsyncSession = Depends(get_session),
+):
     ticker = ticker.strip().upper()
-
-    if watchlist_manager.remove_ticker(ticker):
-        # Invalidate watchlist cache so it refreshes
+    if await watchlist_manager.remove_ticker(session, ticker):
         cache.invalidate("watchlist_bulk")
         return {"status": "removed", "ticker": ticker}
     else:

@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings
-from typing import List
 
 
 class Settings(BaseSettings):
@@ -22,11 +21,21 @@ class Settings(BaseSettings):
     # Frontend
     next_public_api_base_url: str = "http://localhost:8000"
 
+    # Database
+    database_url: str = "postgresql+asyncpg://localhost/market_research"
+
+    # API auth (empty = disabled for local dev)
+    api_key: str = ""
+
     @property
-    def tickers_list(self) -> List[str]:
-        """Get current watchlist tickers from persistent storage."""
-        from core import watchlist_manager
-        return watchlist_manager.get_tickers()
+    def async_database_url(self) -> str:
+        """Normalize Render's postgres:// URL to postgresql+asyncpg://"""
+        url = self.database_url
+        if url.startswith("postgres://"):
+            url = "postgresql+asyncpg://" + url[len("postgres://"):]
+        elif url.startswith("postgresql://"):
+            url = "postgresql+asyncpg://" + url[len("postgresql://"):]
+        return url
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

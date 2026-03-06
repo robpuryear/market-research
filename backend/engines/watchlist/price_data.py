@@ -5,8 +5,7 @@ from typing import List
 import logging
 
 from models.watchlist import StockData
-from core import cache, rate_limiter
-from config import settings
+from core import cache, rate_limiter, watchlist_manager
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +16,7 @@ async def bulk_fetch() -> List[StockData]:
         return [StockData(**s) for s in cached]
 
     rate_limiter.acquire("yfinance")
-    tickers = settings.tickers_list
+    tickers = watchlist_manager.get_tickers()
 
     try:
         data = yf.download(

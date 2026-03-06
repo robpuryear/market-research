@@ -1,195 +1,222 @@
 """
-Position Manager - CRUD for portfolio positions
-
-Stores positions in data/positions.json and transactions in data/transactions.json
+Position Manager - PostgreSQL-backed CRUD for portfolio positions.
 """
 
-import json
-import os
-from typing import List, Optional
-from models.portfolio import Position, Transaction
 from datetime import datetime, timezone
+from typing import List, Optional
 import uuid
-import yfinance as yf
 import logging
+
+import yfinance as yf
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from db.base import PositionRow, TransactionRow
+from models.portfolio import Position, Transaction
 
 logger = logging.getLogger(__name__)
 
-POSITIONS_FILE = "data/positions.json"
-TRANSACTIONS_FILE = "data/transactions.json"
+
+def _pos_row_to_model(row: PositionRow) -> Position:
+    return Position(
+        id=row.id,
+        ticker=row.ticker,
+        quantity=row.quantity,
+        avg_cost_basis=row.avg_cost_basis,
+        entry_date=row.entry_date,
+        last_updated=row.last_updated,
+        notes=row.notes,
+        status=row.status,
+    )
 
 
-def add_position(ticker: str, quantity: float, price: float, date: str, notes: Optional[str] = None) -> Position:
-    """Add a new position or add to existing position"""
-    positions = _load_positions()
+def _txn_row_to_model(row: TransactionRow) -> Transaction:
+    return Transaction(
+        id=row.id,
+        position_id=row.position_id,
+        ticker=row.ticker,
+        transaction_type=row.transaction_type,
+        quantity=row.quantity,
+        price=row.price,
+        total_value=row.total_value,
+        commission=row.commission,
+        date=row.date,
+        timestamp=row.timestamp,
+        notes=row.notes,
+    )
 
-    # Check if position already exists
-    existing = next((p for p in positions if p["ticker"] == ticker and p["status"] == "open"), None)
+
+async def add_position(
+    session: AsyncSession,
+    ticker: str,
+    quantity: float,
+    price: float,
+    date: str,
+    notes: Optional[str] = None,
+) -> Position:
+    """Add a new position or average up/down an existing one."""
+    result = await session.execute(
+        select(PositionRow)
+        .where(PositionRow.ticker == ticker.upper())
+        .where(PositionRow.status == "open")
+    )
+    existing = result.scalar_one_or_none()
 
     if existing:
-        # Average up/down
-        old_cost = existing["avg_cost_basis"] * existing["quantity"]
+        old_cost = existing.avg_cost_basis * existing.quantity
         new_cost = price * quantity
-        total_quantity = existing["quantity"] + quantity
-        new_avg = (old_cost + new_cost) / total_quantity
-
-        existing["quantity"] = total_quantity
-        existing["avg_cost_basis"] = new_avg
-        existing["last_updated"] = datetime.now(timezone.utc).isoformat()
-
-        position = Position(**existing)
-        position_id = existing["id"]
+        total_qty = existing.quantity + quantity
+        existing.avg_cost_basis = (old_cost + new_cost) / total_qty
+        existing.quantity = total_qty
+        existing.last_updated = datetime.now(timezone.utc)
+        position_id = existing.id
     else:
-        # New position
-        position = Position(
-            id=str(uuid.uuid4()),
+        position_id = str(uuid.uuid4())
+        session.add(PositionRow(
+            id=position_id,
             ticker=ticker.upper(),
             quantity=quantity,
             avg_cost_basis=price,
             entry_date=date,
             last_updated=datetime.now(timezone.utc),
             notes=notes,
-            status="open"
-        )
-        positions.append(position.model_dump())
-        position_id = position.id
+            status="open",
+        ))
 
-    _save_positions(positions)
+    await session.flush()
 
-    # Record transaction
-    record_transaction(
-        position_id=position_id,
-        ticker=ticker.upper(),
-        transaction_type="buy",
-        quantity=quantity,
-        price=price,
-        date=date,
-        notes=notes
+    await _record_transaction(
+        session, position_id=position_id, ticker=ticker.upper(),
+        transaction_type="buy", quantity=quantity, price=price,
+        date=date, notes=notes,
     )
+    await session.commit()
 
+    updated = await session.get(PositionRow, position_id)
+    pos = _pos_row_to_model(updated)
     logger.info(f"Added {quantity} shares of {ticker} at ${price}")
-    return position
+    return pos
 
 
-def sell_position(position_id: str, quantity: float, price: float, date: str, notes: Optional[str] = None) -> Position:
-    """Sell part or all of a position"""
-    positions = _load_positions()
+async def sell_position(
+    session: AsyncSession,
+    position_id: str,
+    quantity: float,
+    price: float,
+    date: str,
+    notes: Optional[str] = None,
+) -> Position:
+    """Sell part or all of a position."""
+    row = await session.get(PositionRow, position_id)
+    if not row:
+        raise ValueError(f"Position {position_id} not found")
+    if quantity > row.quantity:
+        raise ValueError(f"Cannot sell {quantity} shares — only {row.quantity} owned")
 
-    for i, p in enumerate(positions):
-        if p["id"] == position_id:
-            if quantity > p["quantity"]:
-                raise ValueError(f"Cannot sell {quantity} shares - only {p['quantity']} owned")
+    row.quantity -= quantity
+    row.last_updated = datetime.now(timezone.utc)
+    if row.quantity == 0:
+        row.status = "closed"
 
-            p["quantity"] -= quantity
-            p["last_updated"] = datetime.now(timezone.utc).isoformat()
+    await _record_transaction(
+        session, position_id=position_id, ticker=row.ticker,
+        transaction_type="sell", quantity=quantity, price=price,
+        date=date, notes=notes,
+    )
+    await session.commit()
 
-            if p["quantity"] == 0:
-                p["status"] = "closed"
-
-            _save_positions(positions)
-
-            # Record transaction
-            record_transaction(
-                position_id=position_id,
-                ticker=p["ticker"],
-                transaction_type="sell",
-                quantity=quantity,
-                price=price,
-                date=date,
-                notes=notes
-            )
-
-            logger.info(f"Sold {quantity} shares of {p['ticker']} at ${price}")
-            return Position(**p)
-
-    raise ValueError(f"Position {position_id} not found")
+    updated = await session.get(PositionRow, position_id)
+    logger.info(f"Sold {quantity} shares of {row.ticker} at ${price}")
+    return _pos_row_to_model(updated)
 
 
-def update_position(position_id: str, updates: dict) -> Optional[Position]:
+async def update_position(
+    session: AsyncSession,
+    position_id: str,
+    updates: dict,
+) -> Optional[Position]:
     """Update position fields (notes, etc.)"""
-    positions = _load_positions()
-
-    for i, p in enumerate(positions):
-        if p["id"] == position_id:
-            p.update(updates)
-            p["last_updated"] = datetime.now(timezone.utc).isoformat()
-            _save_positions(positions)
-            logger.info(f"Updated position {position_id}")
-            return Position(**p)
-
-    return None
+    row = await session.get(PositionRow, position_id)
+    if not row:
+        return None
+    if "notes" in updates:
+        row.notes = updates["notes"]
+    row.last_updated = datetime.now(timezone.utc)
+    await session.commit()
+    logger.info(f"Updated position {position_id}")
+    return _pos_row_to_model(row)
 
 
-def delete_position(position_id: str) -> bool:
-    """Delete a position (admin only - not for closing positions)"""
-    positions = _load_positions()
-    filtered = [p for p in positions if p["id"] != position_id]
-
-    if len(filtered) < len(positions):
-        _save_positions(filtered)
-        logger.info(f"Deleted position {position_id}")
-        return True
-
-    return False
+async def delete_position(session: AsyncSession, position_id: str) -> bool:
+    """Delete a position (admin only)."""
+    row = await session.get(PositionRow, position_id)
+    if not row:
+        return False
+    await session.delete(row)
+    await session.commit()
+    logger.info(f"Deleted position {position_id}")
+    return True
 
 
-def get_all_positions(include_closed: bool = False) -> List[Position]:
-    """Get all positions with current prices"""
-    positions = _load_positions()
-
+async def get_all_positions(
+    session: AsyncSession,
+    include_closed: bool = False,
+) -> List[Position]:
+    """Get all positions with current prices fetched from yfinance."""
+    q = select(PositionRow)
     if not include_closed:
-        positions = [p for p in positions if p["status"] == "open"]
+        q = q.where(PositionRow.status == "open")
+    result = await session.execute(q)
+    rows = result.scalars().all()
 
-    # Enrich with current prices
     enriched = []
-    for p in positions:
-        pos = Position(**p)
-
-        # Fetch current price
+    for row in rows:
+        pos = _pos_row_to_model(row)
         if pos.status == "open":
             try:
                 stock = yf.Ticker(pos.ticker)
                 info = stock.info or {}
-                current_price = info.get('currentPrice') or info.get('regularMarketPrice')
-
-                # Fallback to history
+                current_price = info.get("currentPrice") or info.get("regularMarketPrice")
                 if not current_price:
                     hist = stock.history(period="1d")
                     if not hist.empty:
-                        current_price = float(hist['Close'].iloc[-1])
-
+                        current_price = float(hist["Close"].iloc[-1])
                 if current_price:
                     pos.current_price = float(current_price)
                     pos.current_value = current_price * pos.quantity
                     cost_basis_total = pos.avg_cost_basis * pos.quantity
                     pos.unrealized_pnl = pos.current_value - cost_basis_total
-                    pos.unrealized_pnl_pct = (pos.unrealized_pnl / cost_basis_total) * 100 if cost_basis_total > 0 else 0
-
-                    # Days held
+                    pos.unrealized_pnl_pct = (
+                        (pos.unrealized_pnl / cost_basis_total) * 100
+                        if cost_basis_total > 0 else 0
+                    )
                     entry = datetime.fromisoformat(pos.entry_date)
                     pos.days_held = (datetime.now(timezone.utc) - entry).days
-
             except Exception as e:
                 logger.warning(f"Failed to fetch price for {pos.ticker}: {e}")
-
         enriched.append(pos)
 
     return enriched
 
 
-def get_position(position_id: str) -> Optional[Position]:
-    """Get a single position by ID"""
-    positions = get_all_positions(include_closed=True)
+async def get_position(session: AsyncSession, position_id: str) -> Optional[Position]:
+    """Get a single position by ID (with live price)."""
+    positions = await get_all_positions(session, include_closed=True)
     return next((p for p in positions if p.id == position_id), None)
 
 
-def record_transaction(position_id: str, ticker: str, transaction_type: str,
-                       quantity: float, price: float, date: str,
-                       commission: float = 0.0, notes: Optional[str] = None) -> Transaction:
-    """Record a transaction"""
-    transactions = _load_transactions()
-
-    txn = Transaction(
+async def _record_transaction(
+    session: AsyncSession,
+    position_id: str,
+    ticker: str,
+    transaction_type: str,
+    quantity: float,
+    price: float,
+    date: str,
+    commission: float = 0.0,
+    notes: Optional[str] = None,
+) -> Transaction:
+    txn = TransactionRow(
         id=str(uuid.uuid4()),
         position_id=position_id,
         ticker=ticker.upper(),
@@ -200,64 +227,35 @@ def record_transaction(position_id: str, ticker: str, transaction_type: str,
         commission=commission,
         date=date,
         timestamp=datetime.now(timezone.utc),
-        notes=notes
+        notes=notes,
     )
-
-    transactions.append(txn.model_dump())
-    _save_transactions(transactions)
-
+    session.add(txn)
     return txn
 
 
-def get_transactions(position_id: Optional[str] = None) -> List[Transaction]:
-    """Get transaction history"""
-    transactions = _load_transactions()
-
+async def get_transactions(
+    session: AsyncSession,
+    position_id: Optional[str] = None,
+) -> List[Transaction]:
+    """Get transaction history, optionally filtered by position."""
+    q = select(TransactionRow)
     if position_id:
-        transactions = [t for t in transactions if t["position_id"] == position_id]
-
-    return [Transaction(**t) for t in transactions]
-
-
-def _load_positions() -> list:
-    """Load positions from JSON file"""
-    if not os.path.exists(POSITIONS_FILE):
-        return []
-    try:
-        with open(POSITIONS_FILE, "r") as f:
-            return json.load(f)
-    except Exception as e:
-        logger.error(f"Error loading positions: {e}")
-        return []
+        q = q.where(TransactionRow.position_id == position_id)
+    result = await session.execute(q)
+    return [_txn_row_to_model(r) for r in result.scalars().all()]
 
 
-def _save_positions(positions: list):
-    """Save positions to JSON file"""
-    try:
-        os.makedirs(os.path.dirname(POSITIONS_FILE), exist_ok=True)
-        with open(POSITIONS_FILE, "w") as f:
-            json.dump(positions, f, indent=2, default=str)
-    except Exception as e:
-        logger.error(f"Error saving positions: {e}")
-
-
-def _load_transactions() -> list:
-    """Load transactions from JSON file"""
-    if not os.path.exists(TRANSACTIONS_FILE):
-        return []
-    try:
-        with open(TRANSACTIONS_FILE, "r") as f:
-            return json.load(f)
-    except Exception as e:
-        logger.error(f"Error loading transactions: {e}")
-        return []
-
-
-def _save_transactions(transactions: list):
-    """Save transactions to JSON file"""
-    try:
-        os.makedirs(os.path.dirname(TRANSACTIONS_FILE), exist_ok=True)
-        with open(TRANSACTIONS_FILE, "w") as f:
-            json.dump(transactions, f, indent=2, default=str)
-    except Exception as e:
-        logger.error(f"Error saving transactions: {e}")
+async def load_all_transactions(session: AsyncSession) -> List[dict]:
+    """Load all transactions as dicts (used by metrics FIFO calculation)."""
+    result = await session.execute(select(TransactionRow))
+    return [
+        {
+            "ticker": r.ticker,
+            "transaction_type": r.transaction_type,
+            "quantity": r.quantity,
+            "price": r.price,
+            "commission": r.commission,
+            "date": r.date,
+        }
+        for r in result.scalars().all()
+    ]

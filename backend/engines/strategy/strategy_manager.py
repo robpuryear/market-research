@@ -1,172 +1,166 @@
 """
-Strategy Manager - CRUD operations for strategies
-
-Stores strategies and results in JSON files at data/strategies.json and data/strategy_results.json
+Strategy Manager - PostgreSQL-backed CRUD for strategies and results.
 """
 
-import json
-import os
-from typing import List, Optional
-from models.strategy import Strategy, StrategyResult
-from datetime import datetime, timezone
 import uuid
 import logging
-from threading import RLock
+from datetime import datetime, timezone
+from typing import List, Optional
+
+from sqlalchemy import select, desc, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from db.base import StrategyRow, StrategyResultRow
+from models.strategy import Strategy, StrategyResult
 
 logger = logging.getLogger(__name__)
 
-STRATEGIES_FILE = "data/strategies.json"
-RESULTS_FILE = "data/strategy_results.json"
 
-# Thread-safe file access
-_strategies_lock = RLock()
-_results_lock = RLock()
-
-
-def create_strategy(strategy_data: dict) -> Strategy:
-    """Create a new strategy"""
-    with _strategies_lock:
-        strategies = _load_strategies()
-        strategy = Strategy(
-            id=str(uuid.uuid4()),
-            created_at=datetime.now(timezone.utc),
-            **strategy_data
-        )
-        strategies.append(strategy.model_dump())
-        _save_strategies(strategies)
-        logger.info(f"Created strategy {strategy.id}: {strategy.name}")
-        return strategy
+def _strategy_row_to_model(row: StrategyRow) -> Strategy:
+    return Strategy(
+        id=row.id,
+        name=row.name,
+        description=row.description,
+        entry_conditions=row.entry_conditions,
+        exit_conditions=row.exit_conditions,
+        enabled=row.enabled,
+        scope=row.scope,
+        generate_alerts=row.generate_alerts,
+        created_at=row.created_at,
+        last_run=row.last_run,
+        hits_today=row.hits_today,
+        total_hits=row.total_hits,
+    )
 
 
-def get_all_strategies() -> List[Strategy]:
-    """Get all strategies"""
-    with _strategies_lock:
-        return [Strategy(**s) for s in _load_strategies()]
+def _result_row_to_model(row: StrategyResultRow) -> StrategyResult:
+    return StrategyResult(
+        id=row.id,
+        strategy_id=row.strategy_id,
+        ticker=row.ticker,
+        matched_at=row.matched_at,
+        entry_conditions_met=row.entry_conditions_met,
+        exit_conditions_met=row.exit_conditions_met,
+        current_price=row.current_price,
+        indicator_values=row.indicator_values,
+        signal_strength=row.signal_strength,
+    )
 
 
-def get_strategy(strategy_id: str) -> Optional[Strategy]:
-    """Get strategy by ID"""
-    with _strategies_lock:
-        strategies = _load_strategies()
-        for s in strategies:
-            if s["id"] == strategy_id:
-                return Strategy(**s)
+async def create_strategy(session: AsyncSession, strategy_data: dict) -> Strategy:
+    strategy_data.pop("id", None)
+    strategy_data.pop("created_at", None)
+    entry = strategy_data.pop("entry_conditions")
+    exit_conds = strategy_data.pop("exit_conditions", None)
+    row = StrategyRow(
+        id=str(uuid.uuid4()),
+        created_at=datetime.now(timezone.utc),
+        name=strategy_data["name"],
+        description=strategy_data.get("description"),
+        entry_conditions=entry.model_dump() if hasattr(entry, "model_dump") else entry,
+        exit_conditions=exit_conds.model_dump() if hasattr(exit_conds, "model_dump") else exit_conds,
+        enabled=strategy_data.get("enabled", True),
+        scope=strategy_data.get("scope", "watchlist"),
+        generate_alerts=strategy_data.get("generate_alerts", False),
+    )
+    session.add(row)
+    await session.commit()
+    logger.info(f"Created strategy {row.id}: {row.name}")
+    return _strategy_row_to_model(row)
+
+
+async def get_all_strategies(session: AsyncSession) -> List[Strategy]:
+    result = await session.execute(select(StrategyRow))
+    return [_strategy_row_to_model(r) for r in result.scalars().all()]
+
+
+async def get_strategy(session: AsyncSession, strategy_id: str) -> Optional[Strategy]:
+    row = await session.get(StrategyRow, strategy_id)
+    return _strategy_row_to_model(row) if row else None
+
+
+async def update_strategy(session: AsyncSession, strategy_id: str, updates: dict) -> Optional[Strategy]:
+    row = await session.get(StrategyRow, strategy_id)
+    if not row:
         return None
+    for field in ("name", "description", "enabled", "scope", "generate_alerts"):
+        if field in updates:
+            setattr(row, field, updates[field])
+    if "entry_conditions" in updates:
+        val = updates["entry_conditions"]
+        row.entry_conditions = val.model_dump() if hasattr(val, "model_dump") else val
+    if "exit_conditions" in updates:
+        val = updates["exit_conditions"]
+        row.exit_conditions = val.model_dump() if hasattr(val, "model_dump") else val
+    await session.commit()
+    logger.info(f"Updated strategy {strategy_id}")
+    return _strategy_row_to_model(row)
 
 
-def update_strategy(strategy_id: str, updates: dict) -> Optional[Strategy]:
-    """Update a strategy"""
-    with _strategies_lock:
-        strategies = _load_strategies()
-        for i, s in enumerate(strategies):
-            if s["id"] == strategy_id:
-                strategies[i].update(updates)
-                _save_strategies(strategies)
-                logger.info(f"Updated strategy {strategy_id}")
-                return Strategy(**strategies[i])
-        return None
-
-
-def delete_strategy(strategy_id: str) -> bool:
-    """Delete a strategy"""
-    with _strategies_lock:
-        strategies = _load_strategies()
-        filtered = [s for s in strategies if s["id"] != strategy_id]
-        if len(filtered) < len(strategies):
-            _save_strategies(filtered)
-            logger.info(f"Deleted strategy {strategy_id}")
-            return True
+async def delete_strategy(session: AsyncSession, strategy_id: str) -> bool:
+    row = await session.get(StrategyRow, strategy_id)
+    if not row:
         return False
+    await session.delete(row)
+    await session.commit()
+    logger.info(f"Deleted strategy {strategy_id}")
+    return True
 
 
-def save_result(result: StrategyResult) -> None:
-    """Save a strategy result"""
-    with _results_lock:
-        results = _load_results()
-        results.append(result.model_dump())
-        _save_results(results)
-        logger.info(f"Saved result for strategy {result.strategy_id}: {result.ticker}")
+async def save_result(session: AsyncSession, result: StrategyResult) -> None:
+    row = StrategyResultRow(
+        id=result.id,
+        strategy_id=result.strategy_id,
+        ticker=result.ticker,
+        matched_at=result.matched_at,
+        entry_conditions_met=result.entry_conditions_met,
+        exit_conditions_met=result.exit_conditions_met,
+        current_price=result.current_price,
+        indicator_values=result.indicator_values,
+        signal_strength=result.signal_strength,
+    )
+    session.add(row)
+    await session.commit()
+    logger.info(f"Saved result for strategy {result.strategy_id}: {result.ticker}")
 
 
-def get_results(strategy_id: str, limit: int = 100) -> List[StrategyResult]:
-    """Get results for a strategy"""
-    with _results_lock:
-        results = _load_results()
-        filtered = [r for r in results if r["strategy_id"] == strategy_id]
-        filtered.sort(key=lambda x: x["matched_at"], reverse=True)
-        return [StrategyResult(**r) for r in filtered[:limit]]
+async def get_results(
+    session: AsyncSession,
+    strategy_id: str,
+    limit: int = 100,
+) -> List[StrategyResult]:
+    result = await session.execute(
+        select(StrategyResultRow)
+        .where(StrategyResultRow.strategy_id == strategy_id)
+        .order_by(desc(StrategyResultRow.matched_at))
+        .limit(limit)
+    )
+    return [_result_row_to_model(r) for r in result.scalars().all()]
 
 
-def get_recent_results(limit: int = 50) -> List[StrategyResult]:
-    """Get recent results across all strategies"""
-    with _results_lock:
-        results = _load_results()
-        results.sort(key=lambda x: x["matched_at"], reverse=True)
-        return [StrategyResult(**r) for r in results[:limit]]
+async def get_recent_results(session: AsyncSession, limit: int = 50) -> List[StrategyResult]:
+    result = await session.execute(
+        select(StrategyResultRow)
+        .order_by(desc(StrategyResultRow.matched_at))
+        .limit(limit)
+    )
+    return [_result_row_to_model(r) for r in result.scalars().all()]
 
 
-def increment_strategy_hits(strategy_id: str, count: int = 1) -> None:
-    """Increment hit counters for a strategy"""
-    with _strategies_lock:
-        strategies = _load_strategies()
-        for i, s in enumerate(strategies):
-            if s["id"] == strategy_id:
-                strategies[i]["hits_today"] = strategies[i].get("hits_today", 0) + count
-                strategies[i]["total_hits"] = strategies[i].get("total_hits", 0) + count
-                strategies[i]["last_run"] = datetime.now(timezone.utc).isoformat()
-                _save_strategies(strategies)
-                break
+async def increment_strategy_hits(
+    session: AsyncSession,
+    strategy_id: str,
+    count: int = 1,
+) -> None:
+    row = await session.get(StrategyRow, strategy_id)
+    if row:
+        row.hits_today = (row.hits_today or 0) + count
+        row.total_hits = (row.total_hits or 0) + count
+        row.last_run = datetime.now(timezone.utc)
+        await session.commit()
 
 
-def reset_daily_hits() -> None:
-    """Reset hits_today counter for all strategies (called daily by scheduler)"""
-    with _strategies_lock:
-        strategies = _load_strategies()
-        for s in strategies:
-            s["hits_today"] = 0
-        _save_strategies(strategies)
-        logger.info("Reset daily hits for all strategies")
-
-
-def _load_strategies() -> list:
-    """Load strategies from JSON file"""
-    if not os.path.exists(STRATEGIES_FILE):
-        return []
-    try:
-        with open(STRATEGIES_FILE, "r") as f:
-            return json.load(f)
-    except Exception as e:
-        logger.error(f"Error loading strategies: {e}")
-        return []
-
-
-def _save_strategies(strategies: list):
-    """Save strategies to JSON file"""
-    try:
-        os.makedirs(os.path.dirname(STRATEGIES_FILE), exist_ok=True)
-        with open(STRATEGIES_FILE, "w") as f:
-            json.dump(strategies, f, indent=2, default=str)
-    except Exception as e:
-        logger.error(f"Error saving strategies: {e}")
-
-
-def _load_results() -> list:
-    """Load results from JSON file"""
-    if not os.path.exists(RESULTS_FILE):
-        return []
-    try:
-        with open(RESULTS_FILE, "r") as f:
-            return json.load(f)
-    except Exception as e:
-        logger.error(f"Error loading results: {e}")
-        return []
-
-
-def _save_results(results: list):
-    """Save results to JSON file"""
-    try:
-        os.makedirs(os.path.dirname(RESULTS_FILE), exist_ok=True)
-        with open(RESULTS_FILE, "w") as f:
-            json.dump(results, f, indent=2, default=str)
-    except Exception as e:
-        logger.error(f"Error saving results: {e}")
+async def reset_daily_hits(session: AsyncSession) -> None:
+    await session.execute(update(StrategyRow).values(hits_today=0))
+    await session.commit()
+    logger.info("Reset daily hits for all strategies")

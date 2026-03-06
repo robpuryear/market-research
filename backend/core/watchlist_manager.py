@@ -1,76 +1,74 @@
-"""Persistent watchlist management."""
-import json
+"""Persistent watchlist management — PostgreSQL backed."""
+
 import logging
-from pathlib import Path
+from datetime import datetime, timezone
 from typing import List
-import threading
+
+from sqlalchemy import select, delete
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from db.base import WatchlistRow
 
 logger = logging.getLogger(__name__)
 
-WATCHLIST_FILE = Path(__file__).parent.parent / "data" / "watchlist.json"
-_lock = threading.RLock()  # Use RLock for reentrant locking
-
-
-def _ensure_file_exists():
-    """Ensure watchlist file exists, create with defaults if not."""
-    if not WATCHLIST_FILE.exists():
-        WATCHLIST_FILE.parent.mkdir(parents=True, exist_ok=True)
-        # Default tickers
-        default_tickers = ["IBM", "CVNA", "NVDA", "TSLA", "AAPL", "SPY", "QQQ", "IWM"]
-        _save_tickers(default_tickers)
-        logger.info(f"Created watchlist file with {len(default_tickers)} default tickers")
+# Module-level cache so sync callers (price_data, etc.) still work.
+# Refreshed on every add/remove and on startup via refresh_cache().
+_tickers_cache: List[str] = ["IBM", "CVNA", "NVDA", "TSLA", "AAPL", "SPY", "QQQ", "IWM"]
 
 
 def get_tickers() -> List[str]:
-    """Get current watchlist tickers."""
-    _ensure_file_exists()
-    with _lock:
-        try:
-            with open(WATCHLIST_FILE, "r") as f:
-                data = json.load(f)
-                return data.get("tickers", [])
-        except Exception as e:
-            logger.error(f"Error reading watchlist: {e}")
-            return ["AAPL", "SPY", "QQQ"]  # Fallback
+    """Sync accessor — returns in-memory cache. Refreshed after DB writes."""
+    return list(_tickers_cache)
 
 
-def _save_tickers(tickers: List[str]):
-    """Save tickers to file (internal, assumes lock is held)."""
-    with open(WATCHLIST_FILE, "w") as f:
-        json.dump({"tickers": tickers}, f, indent=2)
+def get_all() -> List[dict]:
+    """Sync accessor returning list of dicts for backward-compat callers."""
+    return [{"ticker": t} for t in _tickers_cache]
 
 
-def add_ticker(ticker: str) -> bool:
-    """Add a ticker to the watchlist. Returns True if added, False if already exists."""
+async def refresh_cache(session: AsyncSession) -> None:
+    """Reload _tickers_cache from DB. Called on startup and after mutations."""
+    global _tickers_cache
+    result = await session.execute(select(WatchlistRow.ticker))
+    _tickers_cache = [r[0] for r in result.fetchall()]
+    logger.debug(f"Watchlist cache refreshed: {len(_tickers_cache)} tickers")
+
+
+async def get_tickers_async(session: AsyncSession) -> List[str]:
+    """Async DB read — returns current tickers."""
+    result = await session.execute(select(WatchlistRow.ticker))
+    return [r[0] for r in result.fetchall()]
+
+
+async def add_ticker(session: AsyncSession, ticker: str) -> bool:
+    """Add ticker. Returns True if added, False if already exists."""
     ticker = ticker.strip().upper()
     if not ticker:
         return False
+    existing = await session.get(WatchlistRow, ticker)
+    if existing:
+        return False
+    session.add(WatchlistRow(ticker=ticker, added_at=datetime.now(timezone.utc)))
+    await session.commit()
+    await refresh_cache(session)
+    logger.info(f"Added {ticker} to watchlist")
+    return True
 
-    with _lock:
-        tickers = get_tickers()
-        if ticker in tickers:
-            return False
-        tickers.append(ticker)
-        _save_tickers(tickers)
-        logger.info(f"Added {ticker} to watchlist")
-        return True
 
-
-def remove_ticker(ticker: str) -> bool:
-    """Remove a ticker from the watchlist. Returns True if removed, False if not found."""
+async def remove_ticker(session: AsyncSession, ticker: str) -> bool:
+    """Remove ticker. Returns True if removed, False if not found."""
     ticker = ticker.strip().upper()
+    existing = await session.get(WatchlistRow, ticker)
+    if not existing:
+        return False
+    await session.delete(existing)
+    await session.commit()
+    await refresh_cache(session)
+    logger.info(f"Removed {ticker} from watchlist")
+    return True
 
-    with _lock:
-        tickers = get_tickers()
-        if ticker not in tickers:
-            return False
-        tickers.remove(ticker)
-        _save_tickers(tickers)
-        logger.info(f"Removed {ticker} from watchlist")
-        return True
 
-
-def ticker_exists(ticker: str) -> bool:
+async def ticker_exists(session: AsyncSession, ticker: str) -> bool:
     """Check if ticker is in the watchlist."""
     ticker = ticker.strip().upper()
-    return ticker in get_tickers()
+    return await session.get(WatchlistRow, ticker) is not None

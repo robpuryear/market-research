@@ -1,4 +1,6 @@
 import { API_BASE_URL } from "./constants";
+
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
 import type {
   MarketSnapshot,
   MarketBreadth,
@@ -55,7 +57,11 @@ export interface OptionsGreeks {
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
+      ...options?.headers,
+    },
   });
   if (!res.ok) {
     const text = await res.text();
@@ -113,7 +119,10 @@ export const fetchStockTwits = (ticker: string) =>
 
 export const fetchNewsSentiment = async (ticker: string): Promise<NewsSentimentData | null> => {
   const res = await fetch(`${API_BASE_URL}/api/sentiment/news/${ticker}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
+    },
   });
   if (res.status === 204) return null;
   if (!res.ok) {

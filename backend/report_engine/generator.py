@@ -1,5 +1,4 @@
 import asyncio
-import json
 import os
 import uuid
 from datetime import datetime, timezone
@@ -8,6 +7,7 @@ from typing import Optional
 import logging
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from sqlalchemy import select, desc, delete
 
 from models.reports import ReportMeta
 from engines.market_data import macro, sectors
@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 REPORTS_DIR = Path(__file__).parent.parent / "data" / "reports"
-INDEX_FILE = REPORTS_DIR / "index.json"
 
 jinja_env = Environment(
     loader=FileSystemLoader(str(TEMPLATES_DIR)),
@@ -29,30 +28,54 @@ jinja_env = Environment(
 )
 
 
-def _load_index() -> list:
-    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    if INDEX_FILE.exists():
-        try:
-            with open(INDEX_FILE) as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return []
+async def _load_index_db(session) -> list:
+    """Load report index from DB (for route handlers)."""
+    from db.base import ReportRow
+    result = await session.execute(
+        select(ReportRow).order_by(desc(ReportRow.generated_at)).limit(50)
+    )
+    rows = result.scalars().all()
+    return [
+        {
+            "id": r.id,
+            "type": r.type,
+            "ticker": r.ticker,
+            "generated_at": r.generated_at.isoformat(),
+            "path": r.path,
+            "file_size_kb": r.file_size_kb,
+            "title": r.title,
+        }
+        for r in rows
+    ]
 
 
-def _save_index(index: list) -> None:
-    with open(INDEX_FILE, "w") as f:
-        json.dump(index, f, default=str, indent=2)
+async def _delete_report_db(session, report_id: str) -> None:
+    """Delete a report row from DB."""
+    from db.base import ReportRow
+    row = await session.get(ReportRow, report_id)
+    if row:
+        await session.delete(row)
+        await session.commit()
 
 
-def _register_report(meta: ReportMeta) -> None:
-    index = _load_index()
-    # Remove old entry with same id
-    index = [r for r in index if r.get("id") != meta.id]
-    index.append(meta.model_dump())
-    # Keep last 50 reports
-    index = index[-50:]
-    _save_index(index)
+async def _register_report(meta: ReportMeta) -> None:
+    """Persist report metadata to DB. Creates its own session."""
+    from db.session import AsyncSessionLocal
+    from db.base import ReportRow
+    async with AsyncSessionLocal() as session:
+        # Remove duplicate
+        from sqlalchemy import delete as sa_delete
+        await session.execute(sa_delete(ReportRow).where(ReportRow.id == meta.id))
+        session.add(ReportRow(
+            id=meta.id,
+            type=meta.type,
+            ticker=meta.ticker,
+            generated_at=meta.generated_at,
+            path=meta.path,
+            file_size_kb=meta.file_size_kb,
+            title=meta.title,
+        ))
+        await session.commit()
 
 
 async def generate_report_a(standalone: bool = False) -> ReportMeta:
@@ -109,7 +132,8 @@ async def generate_report_b(standalone: bool = False) -> ReportMeta:
     """Advanced Analytics Report."""
     logger.info("Generating Report B (Advanced Analytics)")
 
-    tickers_from_config = __import__("backend.config", fromlist=["settings"]).settings.tickers_list
+    from core.watchlist_manager import get_tickers
+    tickers_from_config = get_tickers()
 
     signals_list, corr_data, squeeze_data, flow_data = await asyncio.gather(
         asyncio.gather(*[ml_signals.run_all(t) for t in tickers_from_config]),

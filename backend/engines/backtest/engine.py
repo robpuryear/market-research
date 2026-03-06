@@ -115,6 +115,30 @@ async def run_backtest(config: BacktestConfig) -> BacktestResult:
         f"{metrics['total_return']:.2%} return, Sharpe: {metrics['sharpe_ratio']:.2f}"
     )
 
+    # Persist result to DB
+    try:
+        from db.session import AsyncSessionLocal
+        from db.base import BacktestResultRow
+        result_id = str(uuid.uuid4())
+        async with AsyncSessionLocal() as session:
+            session.add(BacktestResultRow(
+                id=result_id,
+                strategy_type=config.strategy_type,
+                ticker=config.ticker,
+                start_date=config.start_date,
+                end_date=config.end_date,
+                total_return=result.total_return,
+                sharpe_ratio=result.sharpe_ratio,
+                max_drawdown=result.max_drawdown,
+                total_trades=result.total_trades,
+                timestamp=result.timestamp,
+                result_json=result.model_dump(),
+            ))
+            await session.commit()
+        logger.info(f"Saved backtest result {result_id}")
+    except Exception as e:
+        logger.warning(f"Failed to save backtest result to DB: {e}")
+
     return result
 
 

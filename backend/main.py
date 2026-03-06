@@ -48,12 +48,16 @@ class NaNSafeJSONResponse(JSONResponse):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Start scheduler on startup, stop on shutdown."""
+    """Initialize DB, start scheduler on startup; stop on shutdown."""
     logger.info("Starting Market Intelligence API")
+    from db.migrate import init_db
+    from db.session import engine
+    await init_db()
     sched.start()
     yield
     logger.info("Shutting down Market Intelligence API")
     sched.stop()
+    await engine.dispose()
 
 
 app = FastAPI(
@@ -71,6 +75,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from api.middleware.auth import APIKeyMiddleware
+app.add_middleware(APIKeyMiddleware)
 
 # Register routers
 app.include_router(market.router)

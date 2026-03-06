@@ -1,12 +1,16 @@
 """
 Backtesting API Routes
-
-Endpoints for running backtests and retrieving results.
 """
 
-from fastapi import APIRouter, HTTPException
-from models.backtest import BacktestConfig, BacktestResult
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy import select, desc
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
+
+from models.backtest import BacktestConfig, BacktestResult, BacktestSummary
 from engines.backtest import engine
+from db.base import BacktestResultRow
+from db.session import get_session
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,20 +20,6 @@ router = APIRouter(prefix="/api/backtest", tags=["backtest"])
 
 @router.post("/run", response_model=BacktestResult)
 async def run_backtest(config: BacktestConfig):
-    """
-    Run a backtest with the given configuration.
-
-    Supported strategies:
-    - buy_hold: Simple buy-and-hold baseline
-    - rsi_reversal: RSI mean reversion (buy oversold, sell overbought)
-    - macd_cross: MACD crossover (buy on bullish cross, sell on bearish cross)
-    - ma_cross: Moving Average crossover (Golden/Death cross)
-    - bb_breakout: Bollinger Band breakout or mean reversion
-    - momentum: Multi-indicator momentum (ROC + RSI + volume)
-    - multi_factor: Combined signals with scoring system
-
-    Returns complete backtest results with trades and performance metrics.
-    """
     try:
         logger.info(f"Running backtest: {config.strategy_type} on {config.ticker}")
         result = await engine.run_backtest(config)
@@ -42,69 +32,70 @@ async def run_backtest(config: BacktestConfig):
         raise HTTPException(status_code=500, detail=f"Backtest failed: {str(e)}")
 
 
+@router.get("/results", response_model=List[BacktestSummary])
+async def list_backtest_results(
+    ticker: str = None,
+    limit: int = 50,
+    session: AsyncSession = Depends(get_session),
+):
+    """List saved backtest results (summary only, no full equity curves)."""
+    q = select(BacktestResultRow).order_by(desc(BacktestResultRow.timestamp)).limit(limit)
+    if ticker:
+        q = q.where(BacktestResultRow.ticker == ticker.upper())
+    result = await session.execute(q)
+    rows = result.scalars().all()
+    return [
+        BacktestSummary(
+            id=r.id,
+            strategy_type=r.strategy_type,
+            ticker=r.ticker,
+            start_date=r.start_date,
+            end_date=r.end_date,
+            total_return=r.total_return,
+            sharpe_ratio=r.sharpe_ratio,
+            max_drawdown=r.max_drawdown,
+            total_trades=r.total_trades,
+            timestamp=r.timestamp,
+        )
+        for r in rows
+    ]
+
+
+@router.get("/results/{result_id}", response_model=BacktestResult)
+async def get_backtest_result(
+    result_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get full backtest result by ID."""
+    row = await session.get(BacktestResultRow, result_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Backtest result not found")
+    return BacktestResult(**row.result_json)
+
+
 @router.get("/strategies")
 async def list_strategies():
-    """
-    List available backtest strategies.
-
-    Returns strategy names with descriptions and configurable parameters.
-    """
     return {
         "strategies": [
-            {
-                "name": "buy_hold",
-                "display_name": "Buy and Hold",
-                "description": "Simple buy-and-hold baseline strategy. Buys at start and holds until end.",
-                "parameters": []
-            },
-            {
-                "name": "rsi_reversal",
-                "display_name": "RSI Reversal",
-                "description": "Mean reversion strategy using RSI. Buys when oversold, sells when overbought.",
-                "parameters": [
-                    {"name": "rsi_period", "type": "int", "default": 14, "description": "RSI calculation period"},
-                    {"name": "rsi_oversold", "type": "float", "default": 30.0, "description": "Oversold threshold (buy signal)"},
-                    {"name": "rsi_overbought", "type": "float", "default": 70.0, "description": "Overbought threshold (sell signal)"},
-                ]
-            },
-            {
-                "name": "macd_cross",
-                "display_name": "MACD Crossover",
-                "description": "Trend-following strategy using MACD crossovers. Buys on bullish cross, sells on bearish cross.",
-                "parameters": []
-            },
-            {
-                "name": "ma_cross",
-                "display_name": "Moving Average Crossover",
-                "description": "Golden/Death cross strategy using 50-day and 200-day moving averages.",
-                "parameters": []
-            },
-            {
-                "name": "bb_breakout",
-                "display_name": "Bollinger Band Breakout",
-                "description": "Volatility breakout or mean reversion using Bollinger Bands. Default is breakout mode.",
-                "parameters": [
-                    {"name": "bb_mode", "type": "string", "default": "breakout", "description": "Mode: 'breakout' or 'mean_reversion'"},
-                ]
-            },
-            {
-                "name": "momentum",
-                "display_name": "Momentum Strategy",
-                "description": "Multi-indicator momentum strategy combining ROC, RSI, and volume analysis.",
-                "parameters": [
-                    {"name": "roc_entry", "type": "float", "default": 5.0, "description": "ROC entry threshold (%)"},
-                    {"name": "roc_exit", "type": "float", "default": 0.0, "description": "ROC exit threshold (%)"},
-                    {"name": "roc_period", "type": "int", "default": 10, "description": "ROC calculation period"},
-                ]
-            },
-            {
-                "name": "multi_factor",
-                "display_name": "Multi-Factor Strategy",
-                "description": "Combined signals strategy using RSI, MACD, MA trends, Bollinger Bands, and volume with scoring system.",
-                "parameters": [
-                    {"name": "signal_entry_threshold", "type": "float", "default": 3.0, "description": "Signal score threshold to enter (max 5.0)"},
-                    {"name": "signal_exit_threshold", "type": "float", "default": 0.0, "description": "Signal score threshold to exit"},
-                ]
-            },
+            {"name": "buy_hold", "display_name": "Buy and Hold", "description": "Simple buy-and-hold baseline strategy.", "parameters": []},
+            {"name": "rsi_reversal", "display_name": "RSI Reversal", "description": "Mean reversion using RSI.", "parameters": [
+                {"name": "rsi_period", "type": "int", "default": 14},
+                {"name": "rsi_oversold", "type": "float", "default": 30.0},
+                {"name": "rsi_overbought", "type": "float", "default": 70.0},
+            ]},
+            {"name": "macd_cross", "display_name": "MACD Crossover", "description": "Trend-following using MACD crossovers.", "parameters": []},
+            {"name": "ma_cross", "display_name": "Moving Average Crossover", "description": "Golden/Death cross using 50 and 200-day MAs.", "parameters": []},
+            {"name": "bb_breakout", "display_name": "Bollinger Band Breakout", "description": "Volatility breakout using Bollinger Bands.", "parameters": [
+                {"name": "bb_mode", "type": "string", "default": "breakout"},
+            ]},
+            {"name": "momentum", "display_name": "Momentum Strategy", "description": "Multi-indicator momentum (ROC + RSI + volume).", "parameters": [
+                {"name": "roc_entry", "type": "float", "default": 5.0},
+                {"name": "roc_exit", "type": "float", "default": 0.0},
+                {"name": "roc_period", "type": "int", "default": 10},
+            ]},
+            {"name": "multi_factor", "display_name": "Multi-Factor Strategy", "description": "Combined signals with scoring system.", "parameters": [
+                {"name": "signal_entry_threshold", "type": "float", "default": 3.0},
+                {"name": "signal_exit_threshold", "type": "float", "default": 0.0},
+            ]},
         ]
     }

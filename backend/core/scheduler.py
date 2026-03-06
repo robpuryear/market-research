@@ -112,7 +112,9 @@ async def _refresh_analytics():
 async def _evaluate_alerts():
     try:
         from engines.alerts.evaluator import evaluate_all_alerts
-        await evaluate_all_alerts()
+        from db.session import AsyncSessionLocal
+        async with AsyncSessionLocal() as session:
+            await evaluate_all_alerts(session)
         logger.debug("Alert evaluation completed")
     except Exception as e:
         logger.error(f"Scheduler: alert evaluation failed: {e}")
@@ -124,57 +126,52 @@ async def _run_enabled_strategies():
         from engines.strategy import strategy_manager, strategy_evaluator
         from engines.alerts import alert_manager
         from core import watchlist_manager, stock_universe
+        from db.session import AsyncSessionLocal
 
-        strategies = strategy_manager.get_all_strategies()
-        enabled_strategies = [s for s in strategies if s.enabled]
+        async with AsyncSessionLocal() as session:
+            strategies = await strategy_manager.get_all_strategies(session)
+            enabled_strategies = [s for s in strategies if s.enabled]
 
-        if not enabled_strategies:
-            return
+            if not enabled_strategies:
+                return
 
-        logger.info(f"Running {len(enabled_strategies)} enabled strategies")
+            logger.info(f"Running {len(enabled_strategies)} enabled strategies")
 
-        for strategy in enabled_strategies:
-            try:
-                # Get tickers based on scope
-                if strategy.scope == "watchlist":
-                    tickers = [item["ticker"] for item in watchlist_manager.get_all()]
-                else:  # market
-                    tickers = stock_universe.get_all_tickers()
+            for strategy in enabled_strategies:
+                try:
+                    tickers = watchlist_manager.get_tickers() if strategy.scope == "watchlist" else stock_universe.get_all_tickers()
 
-                if not tickers:
-                    continue
+                    if not tickers:
+                        continue
 
-                # Run strategy scan
-                results = await strategy_evaluator.run_strategy_scan(strategy, tickers)
+                    results = await strategy_evaluator.run_strategy_scan(strategy, tickers, session)
 
-                # Generate alerts if configured
-                if strategy.generate_alerts and results:
-                    for result in results:
-                        try:
-                            alert_data = {
-                                "ticker": result.ticker,
-                                "alert_type": "signal",
-                                "condition": {
-                                    "signal_type": "strategy",
-                                    "operator": "fired",
-                                    "threshold": None,
-                                    "direction": None
-                                },
-                                "message": f"Strategy '{strategy.name}' matched (signal strength: {result.signal_strength})"
-                            }
-                            alert_manager.create_alert(alert_data)
-                        except Exception as e:
-                            logger.error(f"Failed to create alert for {result.ticker}: {e}")
+                    if strategy.generate_alerts and results:
+                        for result in results:
+                            try:
+                                await alert_manager.create_alert(session, {
+                                    "ticker": result.ticker,
+                                    "alert_type": "signal",
+                                    "condition": {
+                                        "signal_type": "strategy",
+                                        "operator": "fired",
+                                        "threshold": None,
+                                        "direction": None,
+                                    },
+                                    "message": f"Strategy '{strategy.name}' matched (signal strength: {result.signal_strength})",
+                                })
+                            except Exception as e:
+                                logger.error(f"Failed to create alert for {result.ticker}: {e}")
 
-                logger.info(f"Strategy '{strategy.name}' completed: {len(results)} matches")
+                    logger.info(f"Strategy '{strategy.name}' completed: {len(results)} matches")
 
-            except Exception as e:
-                logger.error(f"Failed to run strategy '{strategy.name}': {e}")
+                except Exception as e:
+                    logger.error(f"Failed to run strategy '{strategy.name}': {e}")
 
-        # Reset daily hit counters at midnight
-        now = datetime.now(timezone.utc)
-        if now.hour == 0 and now.minute < 15:  # Reset in first 15 min of day
-            strategy_manager.reset_daily_hits()
+            # Reset daily hit counters at midnight
+            now = datetime.now(timezone.utc)
+            if now.hour == 0 and now.minute < 15:
+                await strategy_manager.reset_daily_hits(session)
 
     except Exception as e:
         logger.error(f"Scheduler: strategy execution failed: {e}")
