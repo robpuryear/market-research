@@ -68,7 +68,11 @@ async def _fetch_av_news_buzz() -> Dict[str, int]:
     if not settings.alpha_vantage_api_key:
         return {}
     try:
-        rate_limiter.acquire("alpha_vantage")
+        # Non-blocking acquire — skip AV rather than freezing the event loop
+        # (AV free tier: 25 calls/day, refills at ~1 token/58 min)
+        if not rate_limiter.acquire("alpha_vantage", block=False):
+            logger.info("Alpha Vantage rate limit reached, skipping news buzz")
+            return {}
         params = {
             "function": "NEWS_SENTIMENT",
             "sort": "LATEST",
@@ -98,7 +102,6 @@ async def _fetch_av_news_buzz() -> Dict[str, int]:
 async def _fetch_stocktwits_trending() -> Set[str]:
     """Returns set of tickers currently trending on StockTwits."""
     try:
-        rate_limiter.acquire("stocktwits")
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(
                 "https://api.stocktwits.com/api/2/trending/symbols.json",
