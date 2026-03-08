@@ -71,47 +71,46 @@ def _parse_bls_dates(html: str) -> List[date]:
 def _parse_fomc_dates(html: str) -> List[date]:
     """
     Extract FOMC decision dates from the Fed calendar page.
-    Fed format: 'January 27-28, 2026' — the second day is the decision day.
-    Also handles single-day entries: 'January 29, 2026'
+
+    The page uses structured divs per meeting:
+      <div class="fomc-meeting__month ..."><strong>March</strong></div>
+      <div class="fomc-meeting__date ...">17-18</div>
+
+    Month and day are in separate elements. Year comes from the nearest
+    preceding section header like '2026 FOMC Meetings'.
+    Second day of a range is the decision day.
     """
     today = date.today()
     found: List[date] = []
 
-    # Two-day meetings: Month D1-D2, YYYY  → use D2 (decision day)
-    pattern_range = re.compile(
-        r'(January|February|March|April|May|June|July|August|'
-        r'September|October|November|December)\s+(\d{1,2})-(\d{1,2}),\s+(20\d{2})',
-        re.IGNORECASE,
-    )
-    for m in pattern_range.finditer(html):
-        month_str, _, day2_str, year_str = m.group(1), m.group(2), m.group(3), m.group(4)
-        month = _MONTHS.get(month_str.lower())
-        if not month:
-            continue
-        try:
-            d = date(int(year_str), month, int(day2_str))
-            if d >= today:
-                found.append(d)
-        except ValueError:
-            continue
+    # Split into per-year sections
+    year_section_re = re.compile(r'(\d{4})\s+FOMC\s+Meetings', re.IGNORECASE)
+    section_starts = [(m.start(), int(m.group(1))) for m in year_section_re.finditer(html)]
 
-    # Single-day entries
-    pattern_single = re.compile(
-        r'(January|February|March|April|May|June|July|August|'
-        r'September|October|November|December)\s+(\d{1,2}),\s+(20\d{2})',
-        re.IGNORECASE,
-    )
-    for m in pattern_single.finditer(html):
-        month_str, day_str, year_str = m.group(1), m.group(2), m.group(3)
-        month = _MONTHS.get(month_str.lower())
-        if not month:
-            continue
-        try:
-            d = date(int(year_str), month, int(day_str))
-            if d >= today:
-                found.append(d)
-        except ValueError:
-            continue
+    month_re = re.compile(r'fomc-meeting__month[^>]*>.*?<strong>(.*?)</strong>', re.IGNORECASE | re.DOTALL)
+    date_re  = re.compile(r'fomc-meeting__date[^>]*>([\d\-*]+)<', re.IGNORECASE)
+
+    for i, (start, year) in enumerate(section_starts):
+        end = section_starts[i + 1][0] if i + 1 < len(section_starts) else len(html)
+        section = html[start:end]
+
+        months = [m.group(1).strip() for m in month_re.finditer(section)]
+        dates  = [m.group(1).strip() for m in date_re.finditer(section)]
+
+        for month_str, day_str in zip(months, dates):
+            month = _MONTHS.get(month_str.lower())
+            if not month:
+                continue
+            # day_str is like "27-28" or "28" or "17-18*"
+            day_clean = re.sub(r'[^0-9\-]', '', day_str)
+            parts = day_clean.split('-')
+            try:
+                decision_day = int(parts[-1])  # last number = decision day
+                d = date(year, month, decision_day)
+                if d >= today:
+                    found.append(d)
+            except (ValueError, IndexError):
+                continue
 
     return sorted(set(found))
 
