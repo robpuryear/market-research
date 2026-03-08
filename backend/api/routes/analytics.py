@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
-from engines.analytics import ml_signals, correlation, short_squeeze, market_scanner, composite_sentiment, trending
-from models.analytics import MLSignalsData, MLSignal, SqueezeScore, CorrelationMatrix, ScanCandidate, CompositeSentiment, TrendingStock
+from engines.analytics import ml_signals, correlation, short_squeeze, market_scanner, composite_sentiment, trending, economic_calendar
+from models.analytics import MLSignalsData, MLSignal, SqueezeScore, CorrelationMatrix, ScanCandidate, CompositeSentiment, TrendingStock, EconomicEvent
 from datetime import datetime, timezone
 from typing import List
 
@@ -143,6 +143,18 @@ async def get_trending(top_n: int = Query(15, ge=5, le=30)):
     """
     try:
         return await trending.get_trending(top_n=top_n)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/economic-calendar", response_model=List[EconomicEvent])
+async def get_economic_calendar():
+    """
+    Get upcoming macro event dates: CPI, FOMC decisions, and Jobs Report.
+    Scraped from official BLS and Federal Reserve websites. Cached 24h.
+    """
+    try:
+        return await economic_calendar.get_economic_calendar()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

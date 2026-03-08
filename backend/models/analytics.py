@@ -38,6 +38,14 @@ class EarningsCalendarEntry(BaseModel):
     days_until: int
 
 
+class EconomicEvent(BaseModel):
+    name: str          # "CPI Report", "FOMC Decision", "Jobs Report"
+    event_type: str    # "cpi", "fomc", "jobs"
+    date: str          # YYYY-MM-DD
+    days_until: int
+    description: str
+
+
 class ScanCandidate(BaseModel):
     """A stock candidate from market scanning with opportunity scores."""
     ticker: str

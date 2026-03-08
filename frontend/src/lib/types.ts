@@ -35,6 +35,14 @@ export interface EarningsCalendarEntry {
   days_until: number;
 }
 
+export interface EconomicEvent {
+  name: string;
+  event_type: "cpi" | "fomc" | "jobs";
+  date: string;
+  days_until: number;
+  description: string;
+}
+
 export interface EarningsEntry {
   date: string;
   eps_estimate: number | null;

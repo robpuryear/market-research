@@ -20,6 +20,7 @@ import type {
   SqueezeScore,
   CorrelationMatrix,
   EarningsCalendarEntry,
+  EconomicEvent,
   ScanCandidate,
   CompositeSentiment,
   BacktestConfig,
@@ -173,6 +174,9 @@ export const fetchSignals = (ticker: string) =>
 
 export const fetchEarningsCalendar = () =>
   apiFetch<EarningsCalendarEntry[]>("/api/watchlist/earnings-calendar");
+
+export const fetchEconomicCalendar = () =>
+  apiFetch<EconomicEvent[]>("/api/analytics/economic-calendar");
 
 export const fetchOptions = (ticker: string) =>
   apiFetch<OptionsGreeks>(`/api/market/options/${ticker}`);
