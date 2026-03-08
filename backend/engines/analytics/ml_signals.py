@@ -1,4 +1,5 @@
 """Rule-based ML signals: RSI divergence, MACD crossovers, Bollinger Band squeeze."""
+import gc
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -98,9 +99,9 @@ async def run_all(ticker: str) -> Dict:
             lambda: _detect_bb_squeeze(close, bb_upper, bb_lower),
             lambda: _detect_golden_death_cross(close),
         ]:
-            result = detector()
-            if result:
-                signals.append(result)
+            sig = detector()
+            if sig:
+                signals.append(sig)
 
         # RSI overbought/oversold
         rsi_val = float(rsi.iloc[-1]) if not rsi.empty else 50
@@ -116,6 +117,10 @@ async def run_all(ticker: str) -> Dict:
             "rsi_current": round(rsi_val, 1),
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
+
+        # Free the DataFrame immediately — can be several MB for long histories
+        del hist, close, rsi, macd, macd_signal, bb_upper, bb_lower
+        gc.collect()
 
         cache.set(cache_key, result)
         return result

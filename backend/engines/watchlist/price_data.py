@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import yfinance as yf
 import pandas as pd
 from datetime import datetime, timezone
@@ -116,6 +117,10 @@ async def bulk_fetch() -> List[StockData]:
             }
         except Exception as e:
             logger.warning(f"OHLCV processing failed for {ticker}: {e}")
+
+    # Free the large DataFrame now that we've extracted all values
+    del data
+    gc.collect()
 
     if not ohlcv:
         stale = cache.get_stale("watchlist_bulk")

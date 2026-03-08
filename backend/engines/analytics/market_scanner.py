@@ -1,5 +1,6 @@
 """Market-wide scanner to find top stock opportunities."""
 import asyncio
+import gc
 import logging
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -159,8 +160,9 @@ async def scan_market(
     # Get tickers to scan
     tickers = stock_universe.get_universe(universe, limit=limit)
 
-    # Scan all tickers concurrently (with semaphore to limit concurrency)
-    semaphore = asyncio.Semaphore(10)  # Max 10 concurrent scans
+    # Semaphore kept low: each scan holds a yfinance info dict + ml_signals
+    # DataFrame simultaneously, so high concurrency spikes memory fast.
+    semaphore = asyncio.Semaphore(3)
 
     async def scan_with_semaphore(ticker):
         async with semaphore:
@@ -186,6 +188,10 @@ async def scan_market(
 
     # Take top N
     top_candidates = candidates[:top_n]
+
+    # Free the full results list before caching
+    del results, candidates
+    gc.collect()
 
     # Cache for 1 hour
     cache.set(cache_key, [c.model_dump() for c in top_candidates])

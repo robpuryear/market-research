@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import logging
 from datetime import datetime, timezone
 from typing import List
@@ -34,6 +35,8 @@ async def _refresh_watchlist():
         logger.debug("Watchlist refreshed")
     except Exception as e:
         logger.error(f"Scheduler: watchlist refresh failed: {e}")
+    finally:
+        gc.collect()
 
 
 async def _refresh_sectors():
@@ -94,6 +97,8 @@ async def _generate_scanner_report():
         logger.info("Scheduled scanner report generated")
     except Exception as e:
         logger.error(f"Scheduler: scanner report failed: {e}")
+    finally:
+        gc.collect()
 
 
 async def _refresh_analytics():
@@ -179,7 +184,7 @@ async def _run_enabled_strategies():
 
 def setup_scheduler():
     """Register all scheduled jobs."""
-    # Market snapshot: every 5 min
+    # Market snapshot: every 5 min (lightweight — just a few yfinance calls)
     scheduler.add_job(
         _refresh_market_snapshot,
         IntervalTrigger(minutes=5),
@@ -188,37 +193,38 @@ def setup_scheduler():
         replace_existing=True,
     )
 
-    # Watchlist: every 5 min
+    # Watchlist: every 10 min, offset by 2 min so it doesn't fire with snapshot
+    # (bulk yf.download is memory-intensive — 5 min was too aggressive)
     scheduler.add_job(
         _refresh_watchlist,
-        IntervalTrigger(minutes=5),
+        IntervalTrigger(minutes=10, start_date="2000-01-01 00:02:00"),
         id="watchlist",
         name="Watchlist Price Refresh",
         replace_existing=True,
     )
 
-    # Sectors: every 10 min
+    # Sectors: every 10 min, offset by 4 min
     scheduler.add_job(
         _refresh_sectors,
-        IntervalTrigger(minutes=10),
+        IntervalTrigger(minutes=10, start_date="2000-01-01 00:04:00"),
         id="sectors",
         name="Sector Rotation Refresh",
         replace_existing=True,
     )
 
-    # Market breadth: every 10 min
+    # Market breadth: every 10 min, offset by 6 min
     scheduler.add_job(
         _refresh_breadth,
-        IntervalTrigger(minutes=10),
+        IntervalTrigger(minutes=10, start_date="2000-01-01 00:06:00"),
         id="breadth",
         name="Market Breadth Refresh",
         replace_existing=True,
     )
 
-    # Reddit: every 30 min
+    # Reddit: every 30 min, offset by 8 min
     scheduler.add_job(
         _refresh_reddit,
-        IntervalTrigger(minutes=30),
+        IntervalTrigger(minutes=30, start_date="2000-01-01 00:08:00"),
         id="reddit",
         name="Reddit Sentiment Refresh",
         replace_existing=True,
