@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { fetchTrending, addToWatchlist } from "@/lib/api";
 import type { TrendingStock } from "@/lib/types";
 import { ChangeText } from "@/components/ui/Badge";
+import { InfoIcon } from "@/components/ui/Tooltip";
+import { TOOLTIPS } from "@/lib/tooltips";
 import { clsx } from "clsx";
 import { mutate } from "swr";
 
@@ -72,11 +74,21 @@ export function TrendingStocks() {
         <table className="w-full text-xs font-mono">
           <thead className="border-b border-gray-200">
             <tr>
-              <th className="text-left py-2 px-3 text-gray-500 uppercase tracking-wider">Ticker</th>
-              <th className="text-left py-2 px-3 text-gray-500 uppercase tracking-wider">Price</th>
-              <th className="text-left py-2 px-3 text-gray-500 uppercase tracking-wider">Change</th>
-              <th className="text-left py-2 px-3 text-gray-500 uppercase tracking-wider">Vol</th>
-              <th className="text-left py-2 px-3 text-gray-500 uppercase tracking-wider">Momentum</th>
+              <th className="text-left py-2 px-3 text-gray-500 uppercase tracking-wider">
+                <span className="flex items-center gap-1">Ticker <InfoIcon tooltip={TOOLTIPS.trendingTicker} /></span>
+              </th>
+              <th className="text-left py-2 px-3 text-gray-500 uppercase tracking-wider">
+                <span className="flex items-center gap-1">Price <InfoIcon tooltip={TOOLTIPS.trendingPrice} /></span>
+              </th>
+              <th className="text-left py-2 px-3 text-gray-500 uppercase tracking-wider">
+                <span className="flex items-center gap-1">Change <InfoIcon tooltip={TOOLTIPS.trendingChange} /></span>
+              </th>
+              <th className="text-left py-2 px-3 text-gray-500 uppercase tracking-wider">
+                <span className="flex items-center gap-1">Vol <InfoIcon tooltip={TOOLTIPS.trendingVol} /></span>
+              </th>
+              <th className="text-left py-2 px-3 text-gray-500 uppercase tracking-wider">
+                <span className="flex items-center gap-1">Momentum <InfoIcon tooltip={TOOLTIPS.trendingMomentum} /></span>
+              </th>
               <th className="py-2 px-3" />
             </tr>
           </thead>

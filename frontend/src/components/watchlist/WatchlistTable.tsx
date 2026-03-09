@@ -130,7 +130,11 @@ export function WatchlistTable({ compact = false }: { compact?: boolean }) {
                   Options <InfoIcon tooltip={TOOLTIPS.unusualOptions} />
                 </span>
               </th>
-              <th className="text-left py-2 px-3 text-gray-500 text-xs uppercase tracking-wider">Sentiment</th>
+              <th className="text-left py-2 px-3 text-gray-500 text-xs uppercase tracking-wider">
+                <span className="flex items-center gap-1">
+                  Sentiment <InfoIcon tooltip={TOOLTIPS.sentimentColumn} />
+                </span>
+              </th>
               {!compact && <th className="text-center py-2 px-3 text-gray-500 text-xs">Remove</th>}
             </tr>
           </thead>

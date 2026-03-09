@@ -73,6 +73,17 @@ export const TOOLTIPS = {
 
   // Composite Sentiment
   compositeSentiment: "Composite Sentiment Score - Multi-factor sentiment analysis combining News Sentiment (30%), Analyst Ratings & Price Targets (20%), Insider Trading Activity (15%), Options Flow & Unusual Activity (20%), and Technical Momentum (15%). Score ranges from -100 (very bearish) to +100 (very bullish). Higher confidence = more data available for analysis.",
+  sentimentColumn: "Composite Sentiment (-100 to +100) — combines news tone (30%), analyst ratings & price targets (20%), insider trading activity (15%), unusual options flow (20%), and technical momentum (15%). Positive = bullish outlook, Negative = bearish outlook.",
+
+  // Trending & Momentum
+  trendingTicker: "Stock picking up social buzz — sourced from Reddit (WSB/stocks/investing), Finviz news headlines, and Yahoo Finance trending tickers.",
+  trendingPrice: "Current market price.",
+  trendingChange: "Today's price change %. Green = up, Red = down.",
+  trendingVol: "Volume ratio — today's volume vs. 30-day average. 2.0x means twice the normal activity. Elevated volume often precedes big moves.",
+  trendingMomentum: "Momentum Score (0–100). Social buzz (Reddit mentions + Finviz news + Yahoo trending) contributes up to 60 pts. Technical signals (volume spike + price momentum) add up to 40 pts. Higher = more likely to move soon.",
+
+  // Macro Calendar
+  macroCalendar: "Don't trade Options on these days — macro reports cause unpredictable volatility spikes that can blow through your strikes and make pricing unreliable.",
 
   // Report Types
   dailyReport: "Pre-market (6:30 AM) and post-market (5:00 PM) market summary with macro data and watchlist overview",

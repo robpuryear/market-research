@@ -1,5 +1,7 @@
 "use client";
 import { useEconomicCalendar } from "@/hooks/useAnalytics";
+import { InfoIcon } from "@/components/ui/Tooltip";
+import { TOOLTIPS } from "@/lib/tooltips";
 import type { EconomicEvent } from "@/lib/types";
 
 const EVENT_STYLES: Record<string, { dot: string; label: string }> = {
@@ -63,7 +65,9 @@ export function EconomicCalendar() {
     <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
         <div>
-          <div className="text-sm font-semibold text-gray-700 font-mono">Macro Calendar</div>
+          <div className="text-sm font-semibold text-gray-700 font-mono flex items-center gap-1">
+            Macro Calendar <InfoIcon tooltip={TOOLTIPS.macroCalendar} />
+          </div>
           <div className="text-xs text-gray-500 mt-0.5">CPI · FOMC · Jobs Report</div>
         </div>
         <div className="flex items-center gap-3 text-xs text-gray-400 font-mono">
