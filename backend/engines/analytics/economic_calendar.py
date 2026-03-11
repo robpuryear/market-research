@@ -1,18 +1,19 @@
 """
 Economic Calendar Engine
 
-Fetches upcoming macro event dates from official government sources:
-  - CPI (Consumer Price Index) — BLS release schedule
-  - Jobs Report (Employment Situation) — BLS release schedule
-  - FOMC decision dates — Federal Reserve calendar
+CPI and Jobs Report dates are hard-coded from the official BLS annual
+release schedule (published each December, never changes mid-year).
+BLS blocks automated HTTP requests from cloud IPs, so scraping is not viable.
 
-All three sources are public government pages with no API key required.
-Results cached 24 hours since these schedules rarely change.
+FOMC decision dates are scraped live from the Federal Reserve website,
+which does not block cloud requests.
+
+Results cached 24 hours.
 """
 import asyncio
 import logging
 import re
-from datetime import date, datetime, timezone
+from datetime import date
 from typing import List
 
 import httpx
@@ -30,60 +31,67 @@ HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 }
 
-# Month name → number for regex parsing
 _MONTHS = {
     "january": 1, "february": 2, "march": 3, "april": 4,
     "may": 5, "june": 6, "july": 7, "august": 8,
     "september": 9, "october": 10, "november": 11, "december": 12,
 }
 
+# ---------------------------------------------------------------------------
+# Hard-coded BLS release schedules (BLS blocks cloud scraping)
+# Source: https://www.bls.gov/schedule/news_release/cpi.htm
+#         https://www.bls.gov/schedule/news_release/empsit.htm
+# ---------------------------------------------------------------------------
 
-def _parse_bls_dates(html: str) -> List[date]:
-    """
-    Extract dates from BLS release schedule pages.
-    BLS format: 'Wednesday, March 11, 2026' or 'March 11, 2026'
-    """
+_CPI_2026 = [
+    date(2026,  1, 14),
+    date(2026,  2, 11),
+    date(2026,  3, 11),  # today
+    date(2026,  4, 10),
+    date(2026,  5, 12),
+    date(2026,  6, 11),
+    date(2026,  7, 15),
+    date(2026,  8, 12),
+    date(2026,  9, 11),
+    date(2026, 10, 14),
+    date(2026, 11, 12),
+    date(2026, 12, 11),
+]
+
+_JOBS_2026 = [
+    date(2026,  1,  9),
+    date(2026,  2,  6),
+    date(2026,  3,  6),
+    date(2026,  4,  3),
+    date(2026,  5,  8),
+    date(2026,  6,  5),
+    date(2026,  7, 10),  # Jul 3 is holiday observance for Jul 4 (Sat)
+    date(2026,  8,  7),
+    date(2026,  9,  4),
+    date(2026, 10,  2),
+    date(2026, 11,  6),
+    date(2026, 12,  4),
+]
+
+
+def _upcoming(dates: List[date]) -> List[date]:
     today = date.today()
-    found: List[date] = []
+    return [d for d in dates if d >= today]
 
-    # Pattern: optional weekday, then Month DD, YYYY
-    pattern = re.compile(
-        r'(?:(?:Monday|Tuesday|Wednesday|Thursday|Friday),\s+)?'
-        r'(January|February|March|April|May|June|July|August|'
-        r'September|October|November|December)\s+(\d{1,2}),\s+(20\d{2})',
-        re.IGNORECASE,
-    )
-    for m in pattern.finditer(html):
-        month_str, day_str, year_str = m.group(1), m.group(2), m.group(3)
-        month = _MONTHS.get(month_str.lower())
-        if not month:
-            continue
-        try:
-            d = date(int(year_str), month, int(day_str))
-            if d >= today:
-                found.append(d)
-        except ValueError:
-            continue
 
-    return sorted(set(found))
-
+# ---------------------------------------------------------------------------
+# FOMC — scraped live from federalreserve.gov (no IP blocks)
+# ---------------------------------------------------------------------------
 
 def _parse_fomc_dates(html: str) -> List[date]:
     """
-    Extract FOMC decision dates from the Fed calendar page.
-
-    The page uses structured divs per meeting:
-      <div class="fomc-meeting__month ..."><strong>March</strong></div>
-      <div class="fomc-meeting__date ...">17-18</div>
-
-    Month and day are in separate elements. Year comes from the nearest
-    preceding section header like '2026 FOMC Meetings'.
-    Second day of a range is the decision day.
+    Fed page stores month in fomc-meeting__month div and day range in
+    fomc-meeting__date div. Year comes from the section header.
+    Second day of a two-day meeting is the decision day.
     """
     today = date.today()
     found: List[date] = []
 
-    # Split into per-year sections
     year_section_re = re.compile(r'(\d{4})\s+FOMC\s+Meetings', re.IGNORECASE)
     section_starts = [(m.start(), int(m.group(1))) for m in year_section_re.finditer(html)]
 
@@ -101,12 +109,10 @@ def _parse_fomc_dates(html: str) -> List[date]:
             month = _MONTHS.get(month_str.lower())
             if not month:
                 continue
-            # day_str is like "27-28" or "28" or "17-18*"
             day_clean = re.sub(r'[^0-9\-]', '', day_str)
             parts = day_clean.split('-')
             try:
-                decision_day = int(parts[-1])  # last number = decision day
-                d = date(year, month, decision_day)
+                d = date(year, month, int(parts[-1]))
                 if d >= today:
                     found.append(d)
             except (ValueError, IndexError):
@@ -115,40 +121,14 @@ def _parse_fomc_dates(html: str) -> List[date]:
     return sorted(set(found))
 
 
-async def _get(url: str) -> str:
-    async with httpx.AsyncClient(timeout=15.0, headers=HEADERS, follow_redirects=True) as client:
-        resp = await client.get(url)
-        resp.raise_for_status()
-        return resp.text
-
-
-async def _fetch_cpi_dates() -> List[date]:
-    try:
-        html = await _get("https://www.bls.gov/schedule/news_release/cpi.htm")
-        dates = _parse_bls_dates(html)
-        logger.info(f"CPI: found {len(dates)} upcoming dates")
-        return dates
-    except Exception as e:
-        logger.warning(f"CPI schedule fetch failed: {e}")
-        return []
-
-
-async def _fetch_jobs_dates() -> List[date]:
-    try:
-        html = await _get("https://www.bls.gov/schedule/news_release/empsit.htm")
-        dates = _parse_bls_dates(html)
-        logger.info(f"Jobs: found {len(dates)} upcoming dates")
-        return dates
-    except Exception as e:
-        logger.warning(f"Jobs schedule fetch failed: {e}")
-        return []
-
-
 async def _fetch_fomc_dates() -> List[date]:
     try:
-        html = await _get(
-            "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
-        )
+        async with httpx.AsyncClient(timeout=15.0, headers=HEADERS, follow_redirects=True) as client:
+            resp = await client.get(
+                "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+            )
+            resp.raise_for_status()
+            html = resp.text
         dates = _parse_fomc_dates(html)
         logger.info(f"FOMC: found {len(dates)} upcoming dates")
         return dates
@@ -157,23 +137,29 @@ async def _fetch_fomc_dates() -> List[date]:
         return []
 
 
+# ---------------------------------------------------------------------------
+# Main entry point
+# ---------------------------------------------------------------------------
+
 async def get_economic_calendar(max_events: int = 6) -> List[dict]:
     """
     Returns upcoming macro events sorted by date.
     Each event: {name, event_type, date (YYYY-MM-DD), days_until, description}
     """
     cache_key = "economic_calendar"
-    cached = cache.get(cache_key, "earnings")  # 24h TTL (reuses earnings category)
+    cached = cache.get(cache_key, "earnings")  # 24h TTL
     if cached:
+        # Recalculate days_until in case cache is from yesterday
+        today = date.today()
+        for event in cached:
+            event["days_until"] = (date.fromisoformat(event["date"]) - today).days
         return cached
 
     today = date.today()
 
-    cpi_dates, jobs_dates, fomc_dates = await asyncio.gather(
-        _fetch_cpi_dates(),
-        _fetch_jobs_dates(),
-        _fetch_fomc_dates(),
-    )
+    cpi_dates  = _upcoming(_CPI_2026)
+    jobs_dates = _upcoming(_JOBS_2026)
+    fomc_dates = await _fetch_fomc_dates()
 
     events: List[dict] = []
 
